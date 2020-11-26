@@ -1,3 +1,5 @@
+import altair
+import pandas
 import streamlit
 import string
 from airtable import Airtable
@@ -66,9 +68,9 @@ for thing in api_response:
 announcements = OrderedDict(sorted(announcements.items()))
 
 # 3) At this point, we have a Python dictionary named 'announcements' that holds all of our data in a easily iterable format.
-streamlit.write(announcements)
+# streamlit.dataframe(announcements)
 
-# 4) [TO-DO] Transform the 'announcements' dictionary into a different dictionary with the format:
+# 4) Transform the 'announcements' dictionary into a different dictionary with the format:
 # 
 # {
 # 	"Zucker/Sugar (g)": {
@@ -95,7 +97,22 @@ for announcement_date, announcement_info in announcements.items():
 for ingredient in ingredient_to_date_to_amounts.keys():
 	ingredient_to_date_to_amounts[ingredient] = OrderedDict(sorted(ingredient_to_date_to_amounts[ingredient].items()))
 
-streamlit.write(ingredient_to_date_to_amounts)
+for ingredient in ingredient_to_date_to_amounts.keys():
+	dataframe = pandas.DataFrame({
+		"date": ingredient_to_date_to_amounts[ingredient].keys(),
+		"amount": ingredient_to_date_to_amounts[ingredient].values()
+
+	})
+	chart = altair.Chart(dataframe).mark_line().encode(
+	    x=altair.X('date', axis=altair.Axis(tickCount=4, grid=False)),
+	    y=altair.Y('amount')
+    )
+	streamlit.write(ingredient)
+	col1, col2 = streamlit.beta_columns(2)
+	with col1:
+		streamlit.altair_chart(chart, use_container_width=True)
+	with col2:
+		streamlit.dataframe(dataframe)
 
 # Render a slider on the page.
 # Example: streamlit.slider(label, min_value=None, max_value=None, value=None, step=None, format=None, key=None)
