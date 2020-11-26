@@ -47,11 +47,14 @@ def main():
 	# 4) Visualize the amount available per day of each ingredient mentioned.
 	visualize_amount_per_ingredient_available_over_time(ingredient_to_date_to_amounts)
 
-	# 5) [TO-DO] Visualize the total amount of food (g) available each day over time.
-	visualize_total_amount_available_over_time(ingredient_to_date_to_amounts)
+	# 5) [TO-DO] Calculate the total amount of food (g) available each day over time.
+	total_amount_by_date = calculate_total_amount_available_over_time(ingredient_to_date_to_amounts)
 
-	# 6) Render some Streamlit sliders on the page (not connected to anything yet).
-	render_streamlit_sliders()
+	# 6) [TO-DO] Visualize the total amount of food (g) available each day over time.
+	visualize_total_amount_available_over_time(total_amount_by_date)
+
+	# 7) Render some Streamlit sliders on the page (not connected to anything yet).
+	render_sliders()
 
 def get_data_from_airtable():
 	AIRTABLE_API_KEY = "keygCUTG6e5DvySOR"
@@ -134,11 +137,15 @@ def visualize_amount_per_ingredient_available_over_time(ingredient_to_date_to_am
 		col2.dataframe(dataframe)
 
 
-def visualize_total_amount_available_over_time(ingredient_to_date_to_amounts):
+def calculate_total_amount_available_over_time(ingredient_to_date_to_amounts):
 	pass
 
 
-def render_streamlit_sliders():
+def visualize_total_amount_available_over_time(total_amount_by_date):
+	pass
+
+
+def render_sliders():
 	# Example: streamlit.slider(label, min_value=None, max_value=None, value=None, step=None, format=None, key=None)
 	streamlit.slider("Amount of food", min_value=0, max_value=400, value=200, step=20)
 	streamlit.slider("Calories burned", min_value=0, max_value=400, value=200, step=20)
