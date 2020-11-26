@@ -98,21 +98,19 @@ for ingredient in ingredient_to_date_to_amounts.keys():
 	ingredient_to_date_to_amounts[ingredient] = OrderedDict(sorted(ingredient_to_date_to_amounts[ingredient].items()))
 
 for ingredient in ingredient_to_date_to_amounts.keys():
+	streamlit.header(ingredient)
 	dataframe = pandas.DataFrame({
 		"date": ingredient_to_date_to_amounts[ingredient].keys(),
 		"amount": ingredient_to_date_to_amounts[ingredient].values()
 
 	})
 	chart = altair.Chart(dataframe).mark_line().encode(
-	    x=altair.X('date', axis=altair.Axis(tickCount=4, grid=False)),
+	    x=altair.X('date', axis=altair.Axis(labels=False)),
 	    y=altair.Y('amount')
     )
-	streamlit.write(ingredient)
-	col1, col2 = streamlit.beta_columns(2)
-	with col1:
-		streamlit.altair_chart(chart, use_container_width=True)
-	with col2:
-		streamlit.dataframe(dataframe)
+	col1, col2 = streamlit.beta_columns([2, 1])
+	col1.altair_chart(chart, use_container_width=True)
+	col2.dataframe(dataframe)
 
 # Render a slider on the page.
 # Example: streamlit.slider(label, min_value=None, max_value=None, value=None, step=None, format=None, key=None)
