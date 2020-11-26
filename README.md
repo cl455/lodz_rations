@@ -9,3 +9,9 @@ pip install -r requirements.txt
 ```
 streamlit run rations_visualizer.py
 ```
+
+## To stop the Streamlit server
+
+```
+ctrl + C
+```
