@@ -45,9 +45,10 @@ def main():
 	ingredient_to_date_to_amounts = calculate_available_rations_per_ingredient_per_day(announcements, ingredient_to_date_to_amounts)
 
 	# 4) Visualize the amount available per day of each ingredient mentioned.
-	visualize_amount_available_over_time(ingredient_to_date_to_amounts)
+	visualize_amount_per_ingredient_available_over_time(ingredient_to_date_to_amounts)
 
 	# 5) [TO-DO] Visualize the total amount of food (g) available each day over time.
+	visualize_total_amount_available_over_time(ingredient_to_date_to_amounts)
 
 	# 6) Render some Streamlit sliders on the page (not connected to anything yet).
 	render_streamlit_sliders()
@@ -116,7 +117,7 @@ def calculate_available_rations_per_ingredient_per_day(announcements, ingredient
 	return ingredient_to_date_to_amounts
 
 
-def visualize_amount_available_over_time(ingredient_to_date_to_amounts):
+def visualize_amount_per_ingredient_available_over_time(ingredient_to_date_to_amounts):
 	for ingredient in ingredient_to_date_to_amounts.keys():
 		streamlit.header(ingredient)
 		dataframe = pandas.DataFrame({
@@ -131,6 +132,10 @@ def visualize_amount_available_over_time(ingredient_to_date_to_amounts):
 		col1, col2 = streamlit.beta_columns([2, 1])
 		col1.altair_chart(chart, use_container_width=True)
 		col2.dataframe(dataframe)
+
+
+def visualize_total_amount_available_over_time(ingredient_to_date_to_amounts):
+	pass
 
 
 def render_streamlit_sliders():
