@@ -4,7 +4,7 @@ import streamlit
 import string
 from airtable import Airtable
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 def main():
 	# 1) Connect with Airtable.
@@ -92,7 +92,15 @@ def format_data_from_airtable(data_from_airtable):
 		for key in data:
 			if "(g)" in key:
 				items[key] = data[key]
-				ingredient_to_date_to_amounts[key] = {}
+				all_announcement_dates = []
+				first_announcement_date = date(1940, 3, 13)
+				last_announcement_date = date(1944, 7, 18)     
+				rations_duration = last_announcement_date - first_announcement_date
+				for days_since_first_announcement in range(rations_duration.days):
+					# .days cales the number of days integer value from rations_duration ... timedelta object
+					day = first_announcement_date + timedelta(days_since_first_announcement)
+					all_announcement_dates.append(day.strftime("%Y-%m-%d"))
+				ingredient_to_date_to_amounts[key] = {date:0 for date in all_announcement_dates}
 
 		announcements[data["Date"]] = {
 			"start_date": start_date,
@@ -138,11 +146,30 @@ def visualize_amount_per_ingredient_available_over_time(ingredient_to_date_to_am
 
 
 def calculate_total_amount_available_over_time(ingredient_to_date_to_amounts):
-	pass
+	rations_per_day = {}
+	for ingredient in ingredient_to_date_to_amounts.keys():
+		for date in ingredient_to_date_to_amounts[ingredient].keys():
+			if date in rations_per_day:
+				rations_per_day[date] += ingredient_to_date_to_amounts[ingredient][date]
+			else: 
+				rations_per_day[date] = ingredient_to_date_to_amounts[ingredient][date]	
+	return rations_per_day
 
 
-def visualize_total_amount_available_over_time(total_amount_by_date):
-	pass
+def visualize_total_amount_available_over_time(rations_per_day):
+	streamlit.header("daily_bread")
+	dataframe = pandas.DataFrame({
+		"date": rations_per_day.keys(),
+		"amount": rations_per_day.values()
+
+	})
+	chart = altair.Chart(dataframe).mark_line().encode(
+	    x=altair.X('date', axis=altair.Axis(labels=False)),
+	    y=altair.Y('amount')
+    )
+	col1, col2 = streamlit.beta_columns([2, 1])
+	col1.altair_chart(chart, use_container_width=True)
+	col2.dataframe(dataframe)
 
 
 def render_sliders():
