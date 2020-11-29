@@ -90,17 +90,22 @@ def format_data_from_airtable(data_from_airtable):
 
 		items = {}
 		for key in data:
-			if "(g)" in key:
-				items[key] = data[key]
+			if "(g)" in key or "(kg)" in key:
 				all_announcement_dates = []
 				first_announcement_date = date(1940, 3, 13)
-				last_announcement_date = date(1944, 7, 18)     
+				last_announcement_date = date(1944, 7, 18)  
 				rations_duration = last_announcement_date - first_announcement_date
+				
 				for days_since_first_announcement in range(rations_duration.days):
 					# .days cales the number of days integer value from rations_duration ... timedelta object
 					day = first_announcement_date + timedelta(days_since_first_announcement)
 					all_announcement_dates.append(day.strftime("%Y-%m-%d"))
 				ingredient_to_date_to_amounts[key] = {date:0 for date in all_announcement_dates}
+
+				if "(g)" in key:
+					items[key] = data[key]
+				if "(kg)" in key:
+					items[key] = data[key] * 1000
 
 		announcements[data["Date"]] = {
 			"start_date": start_date,
