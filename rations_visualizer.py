@@ -7,13 +7,14 @@ from collections import OrderedDict
 from datetime import datetime, timedelta, date
 
 def main():
+	render_title()
 	unit = render_unit_dropdown()
 
 	# 1) Connect with Airtable.
 	rations_data_from_airtable = get_rations_rations_data_from_airtable()
 	caloric_values_from_airtable= get_caloric_values_from_airtable()
 
-	# 2) Format the raw announements from Airtable into a more workable form. Desired dictionary format:
+	# 2) Format the raw announcements from Airtable into a more workable form. Desired dictionary format:
 	# 
 	# {
 	# 	"1940-12-24": {
@@ -72,7 +73,6 @@ def main():
 	# 7) Calculate the total amount of food available each day over time, by both mass and calories.
 	total_amount_by_date = calculate_total_amount_available_over_time(item_to_date_to_amounts)
 	total_calories_by_date = calculate_total_calories_available_over_time(item_to_date_to_calories)
-
 
 	# 8) Visualize the total amount of food available each day over time.
 	if unit == "grams":
@@ -176,7 +176,7 @@ def calculate_available_rations_per_item_per_day(announcements, item_to_date_to_
 				current_date = ration_effective_start_date + timedelta(days_since_start)
 				item_to_date_to_amounts[item][current_date.strftime("%Y-%m-%d")] = ration_amount / ration_effective_duration
 
-	# Order each item's mapping of dates to amount available on that date by dates in ascending order.
+	# Order each item"s mapping of dates to amount available on that date by dates in ascending order.
 	for item in item_to_date_to_amounts.keys():
 		item_to_date_to_amounts[item] = OrderedDict(sorted(item_to_date_to_amounts[item].items()))
 	
@@ -199,14 +199,15 @@ def visualize_amount_per_item_available_over_time(item_to_date_to_amounts):
 	for item in item_to_date_to_amounts.keys():
 		streamlit.header(item)
 		dataframe = pandas.DataFrame({
-			"date": item_to_date_to_amounts[item].keys(),
-			"amount": item_to_date_to_amounts[item].values()
+			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amounts[item].keys()],
+			"Grams": item_to_date_to_amounts[item].values()
 
 		})
 		chart = altair.Chart(dataframe).mark_line().encode(
-		    x=altair.X('date', axis=altair.Axis(labels=False)),
-		    y=altair.Y('amount')
-	    )
+		    x=altair.X("Date:T", scale=altair.Scale(zero=False), axis=altair.Axis(labelAngle=-45)),
+		    y=altair.Y("Grams:Q"),
+		    tooltip=["Date", "Grams"]
+	    ).interactive()
 		col1, col2 = streamlit.beta_columns([2, 1])
 		col1.altair_chart(chart, use_container_width=True)
 		col2.dataframe(dataframe)
@@ -239,14 +240,14 @@ def calculate_total_calories_available_over_time(item_to_date_to_calories):
 def visualize_total_amount_available_over_time(rations_per_day):
 	streamlit.header("Daily Bread")
 	dataframe = pandas.DataFrame({
-		"date": rations_per_day.keys(),
-		"amount": rations_per_day.values()
-
+		"Date": [datetime.strptime(date, "%Y-%m-%d") for date in rations_per_day.keys()],
+		"Grams": rations_per_day.values()
 	})
 	chart = altair.Chart(dataframe).mark_line().encode(
-	    x=altair.X('date', axis=altair.Axis(labels=False)),
-	    y=altair.Y('amount')
-    )
+	    x=altair.X("Date:T", scale=altair.Scale(zero=False), axis=altair.Axis(labelAngle=-45)),
+	    y=altair.Y("Grams:Q"),
+	    tooltip=["Date", "Grams"]
+    ).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
 	with streamlit.beta_expander("View dataset"):
 		streamlit.dataframe(dataframe)
@@ -255,21 +256,37 @@ def visualize_total_amount_available_over_time(rations_per_day):
 def visualize_total_calories_available_over_time(calories_per_day):
 	streamlit.header("Daily Bread")
 	dataframe = pandas.DataFrame({
-		"date": calories_per_day.keys(),
-		"calories": calories_per_day.values()
-
+		"Date": [datetime.strptime(date, "%Y-%m-%d") for date in calories_per_day.keys()],
+		"Calories": calories_per_day.values()
 	})
 	chart = altair.Chart(dataframe).mark_line().encode(
-	    x=altair.X('date', axis=altair.Axis(labels=False)),
-	    y=altair.Y('calories')
-    )
+	    x=altair.X("Date:T", scale=altair.Scale(zero=False), axis=altair.Axis(labelAngle=-45)),
+	    y=altair.Y("Calories:Q"),
+	    tooltip=["Date", "Calories"]
+    ).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
 	with streamlit.beta_expander("View dataset"):
 		streamlit.dataframe(dataframe)
 
 
+def render_title():
+	streamlit.sidebar.title("Łódź Rations Visualizer")
+
+
 def render_unit_dropdown():
-	return streamlit.sidebar.selectbox("Visualize by", options=["grams", "calories"])
+	return streamlit.sidebar.selectbox("Selected unit", options=["calories", "grams"])
+
+
+def render_date_slider(rations_per_day):
+	first_announcement_date = datetime.strptime(list(rations_per_day.keys())[0], "%Y-%m-%d")
+	last_announcement_date = datetime.strptime(list(rations_per_day.keys())[-1], "%Y-%m-%d")
+	date_range = streamlit.slider(
+		label="",
+		min_value=first_announcement_date,
+		max_value=last_announcement_date,
+		value=(first_announcement_date, last_announcement_date)
+	)
+	return date_range
 
 
 if __name__ == "__main__":
