@@ -7,6 +7,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta, date
 
 def main():
+	streamlit.set_page_config(page_title="Łódź Rations Visualizer")
 	render_title()
 	unit = render_unit_dropdown()
 
@@ -33,7 +34,7 @@ def main():
 	# 		},
 	# 	},
 	# }
-	announcements, item_to_date_to_amounts = format_rations_data_from_airtable(rations_data_from_airtable)
+	announcements, item_to_date_to_amount = format_rations_data_from_airtable(rations_data_from_airtable)
 
 	# 3) Format the caloric data from Airtable into a more workable form. Desired dictionary format:
 	# 
@@ -54,7 +55,7 @@ def main():
 	# }
 	# 
 	# Mapping each provision to dictionary of dates to the amount available of that provision on that date.
-	item_to_date_to_amounts = calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amounts)
+	item_to_date_to_amount = calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amount)
 
 	# 5) Perform a similar transformation with the caloric data, split out by day:
 	# 
@@ -65,20 +66,34 @@ def main():
 	# 		...
 	# 	}
 	# }
-	item_to_date_to_calories = calculate_available_calories_per_item_per_day(item_to_date_to_amounts, item_to_calories)
+	item_to_date_to_calories = calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_to_calories)
 
 	# 6) Visualize the amount available per day of each item mentioned.
-	# visualize_amount_per_item_available_over_time(item_to_date_to_amounts)
+	# visualize_amount_per_item_available_over_time(item_to_date_to_amount)
 
 	# 7) Calculate the total amount of food available each day over time, by both mass and calories.
-	total_amount_by_date = calculate_total_amount_available_over_time(item_to_date_to_amounts)
+	total_amount_by_date = calculate_total_amount_available_over_time(item_to_date_to_amount)
 	total_calories_by_date = calculate_total_calories_available_over_time(item_to_date_to_calories)
 
 	# 8) Visualize the total amount of food available each day over time.
-	if unit == "grams":
+	if unit == "Mass (g)":
 		visualize_total_amount_available_over_time(total_amount_by_date)
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		visualize_amount_per_item_over_time(item_to_date_to_amount)
 	else:
 		visualize_total_calories_available_over_time(total_calories_by_date)
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		visualize_calories_per_item_over_time(item_to_date_to_calories)
 
 
 @streamlit.cache(persist=True, show_spinner=False)
@@ -104,7 +119,7 @@ def get_caloric_values_from_airtable():
 @streamlit.cache(persist=True, allow_output_mutation=True, show_spinner=False)
 def format_rations_data_from_airtable(rations_data_from_airtable):
 	announcements = {}
-	item_to_date_to_amounts = {}
+	item_to_date_to_amount = {}
 	for thing in rations_data_from_airtable:
 		data = thing["fields"]
 
@@ -137,7 +152,7 @@ def format_rations_data_from_airtable(rations_data_from_airtable):
 					# .days cales the number of days integer value from rations_duration ... timedelta object
 					day = first_announcement_date + timedelta(days_since_first_announcement)
 					all_announcement_dates.append(day.strftime("%Y-%m-%d"))
-				item_to_date_to_amounts[key] = {date:0 for date in all_announcement_dates}
+				item_to_date_to_amount[key] = {date:0 for date in all_announcement_dates}
 
 				if "(g)" in key:
 					items[key] = data[key]
@@ -151,7 +166,7 @@ def format_rations_data_from_airtable(rations_data_from_airtable):
 		}
 	announcements = OrderedDict(sorted(announcements.items()))
 
-	return announcements, item_to_date_to_amounts
+	return announcements, item_to_date_to_amount
 
 
 @streamlit.cache(persist=True, allow_output_mutation=True, show_spinner=False)
@@ -167,40 +182,40 @@ def format_caloric_values_from_airtable(caloric_values_from_airtable):
 
 
 @streamlit.cache(show_spinner=False)
-def calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amounts):
+def calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amount):
 	for announcement_date, announcement_info in announcements.items():
 		for item, ration_amount in announcement_info["items"].items():
 			ration_effective_start_date = datetime.strptime(announcement_info["start_date"], "%Y-%m-%d")
 			ration_effective_duration = announcement_info["duration_in_days"]
 			for days_since_start in range(ration_effective_duration):
 				current_date = ration_effective_start_date + timedelta(days_since_start)
-				item_to_date_to_amounts[item][current_date.strftime("%Y-%m-%d")] = ration_amount / ration_effective_duration
+				item_to_date_to_amount[item][current_date.strftime("%Y-%m-%d")] = ration_amount / ration_effective_duration
 
 	# Order each item"s mapping of dates to amount available on that date by dates in ascending order.
-	for item in item_to_date_to_amounts.keys():
-		item_to_date_to_amounts[item] = OrderedDict(sorted(item_to_date_to_amounts[item].items()))
+	for item in item_to_date_to_amount.keys():
+		item_to_date_to_amount[item] = OrderedDict(sorted(item_to_date_to_amount[item].items()))
 	
-	return item_to_date_to_amounts
+	return item_to_date_to_amount
 
 
 @streamlit.cache(show_spinner=False)
-def calculate_available_calories_per_item_per_day(item_to_date_to_amounts, item_to_calories):
+def calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_to_calories):
 	item_to_date_to_calories = {}
-	for item in item_to_date_to_amounts.keys():
+	for item in item_to_date_to_amount.keys():
 		if item in item_to_calories.keys():
 			item_to_date_to_calories[item] = {}
-			for date in item_to_date_to_amounts[item].keys():
-				item_to_date_to_calories[item][date] = item_to_date_to_amounts[item][date] * (item_to_calories[item] / 100.0)
+			for date in item_to_date_to_amount[item].keys():
+				item_to_date_to_calories[item][date] = item_to_date_to_amount[item][date] * (item_to_calories[item] / 100.0)
 	return item_to_date_to_calories
 
 
 @streamlit.cache(show_spinner=False)
-def visualize_amount_per_item_available_over_time(item_to_date_to_amounts):
-	for item in item_to_date_to_amounts.keys():
+def visualize_amount_per_item_available_over_time(item_to_date_to_amount):
+	for item in item_to_date_to_amount.keys():
 		streamlit.header(item)
 		dataframe = pandas.DataFrame({
-			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amounts[item].keys()],
-			"Grams": item_to_date_to_amounts[item].values()
+			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amount[item].keys()],
+			"Grams": item_to_date_to_amount[item].values()
 
 		})
 		chart = altair.Chart(dataframe).mark_line().encode(
@@ -214,14 +229,14 @@ def visualize_amount_per_item_available_over_time(item_to_date_to_amounts):
 
 
 @streamlit.cache(show_spinner=False)
-def calculate_total_amount_available_over_time(item_to_date_to_amounts):
+def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	rations_per_day = {}
-	for item in item_to_date_to_amounts.keys():
-		for date in item_to_date_to_amounts[item].keys():
+	for item in item_to_date_to_amount.keys():
+		for date in item_to_date_to_amount[item].keys():
 			if date in rations_per_day:
-				rations_per_day[date] += item_to_date_to_amounts[item][date]
+				rations_per_day[date] += item_to_date_to_amount[item][date]
 			else: 
-				rations_per_day[date] = item_to_date_to_amounts[item][date]	
+				rations_per_day[date] = item_to_date_to_amount[item][date]	
 	return rations_per_day
 
 
@@ -269,12 +284,64 @@ def visualize_total_calories_available_over_time(calories_per_day):
 		streamlit.dataframe(dataframe)
 
 
+def visualize_amount_per_item_over_time(item_to_date_to_amount):
+	dataframes = []
+	for item in item_to_date_to_amount.keys():
+		dataframe = pandas.DataFrame({
+			"Item": item,
+			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amount[item].keys()],
+			"Amount": item_to_date_to_amount[item].values()
+		})
+		dataframes.append(dataframe)
+	source = pandas.concat(dataframes)
+	chart = altair.Chart(source).mark_area().encode(
+	    altair.X("Date:T",
+	        axis=altair.Axis(labelAngle=-45),
+	    ),
+	    altair.Y("sum(Amount):Q", stack="center", axis=None),
+	    altair.Color("Item:N",
+	        scale=altair.Scale(scheme="plasma")
+	    )
+	).interactive()
+	streamlit.header("Breakdown by Food Item")
+	streamlit.altair_chart(chart, use_container_width=True)
+	with streamlit.beta_expander("View dataset"):
+		streamlit.dataframe(source)
+
+
+def visualize_calories_per_item_over_time(item_to_date_to_calories):
+	dataframes = []
+	for item in item_to_date_to_calories.keys():
+		dataframe = pandas.DataFrame({
+			"Item": item,
+			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_calories[item].keys()],
+			"Calories": item_to_date_to_calories[item].values()
+		})
+		dataframes.append(dataframe)
+	source = pandas.concat(dataframes)
+	chart = altair.Chart(source).mark_area().encode(
+	    altair.X("Date:T",
+	        axis=altair.Axis(labelAngle=-45),
+	    ),
+	    altair.Y("sum(Calories):Q", stack="center", axis=None),
+	    altair.Color("Item:N",
+	        scale=altair.Scale(scheme="plasma")
+	    )
+	).interactive()
+	streamlit.header("Breakdown by Food Item")
+	streamlit.altair_chart(chart, use_container_width=True)
+	with streamlit.beta_expander("View dataset"):
+		streamlit.dataframe(source)
+
+
 def render_title():
 	streamlit.sidebar.title("Łódź Rations Visualizer")
+	streamlit.sidebar.text("")
+	streamlit.sidebar.text("")
 
 
 def render_unit_dropdown():
-	return streamlit.sidebar.selectbox("Selected unit", options=["calories", "grams"])
+	return streamlit.sidebar.selectbox("Selected unit", options=["Calories (kcal)", "Mass (g)"])
 
 
 def render_date_slider(rations_per_day):
