@@ -11,6 +11,9 @@ def main():
 	render_title()
 	unit = render_unit_dropdown()
 
+	# TODO: Utilize this setting
+	strategy = render_rationing_strategy_dropdown()
+
 	# 1) Connect with Airtable.
 	rations_data_from_airtable = get_rations_rations_data_from_airtable()
 	caloric_values_from_airtable= get_caloric_values_from_airtable()
@@ -77,21 +80,23 @@ def main():
 
 	# 8) Visualize the total amount of food available each day over time.
 	if unit == "Mass (g)":
+		streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the total amount of food that was available to a resident of the Łódź ghetto over time...")
+		streamlit.text("")
 		visualize_total_amount_available_over_time(total_amount_by_date)
 		streamlit.text("")
 		streamlit.text("")
 		streamlit.text("")
-		streamlit.text("")
-		streamlit.text("")
+		streamlit.subheader(f"and this is what was available...")
 		streamlit.text("")
 		visualize_amount_per_item_over_time(item_to_date_to_amount)
 	else:
+		streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the number of calories that were available to a resident of the Łódź ghetto over time...")
+		streamlit.text("")
 		visualize_total_calories_available_over_time(total_calories_by_date)
 		streamlit.text("")
 		streamlit.text("")
 		streamlit.text("")
-		streamlit.text("")
-		streamlit.text("")
+		streamlit.subheader(f"and this is what was available...")
 		streamlit.text("")
 		visualize_calories_per_item_over_time(item_to_date_to_calories)
 
@@ -253,7 +258,6 @@ def calculate_total_calories_available_over_time(item_to_date_to_calories):
 
 
 def visualize_total_amount_available_over_time(rations_per_day):
-	streamlit.header("Daily Bread")
 	dataframe = pandas.DataFrame({
 		"Date": [datetime.strptime(date, "%Y-%m-%d") for date in rations_per_day.keys()],
 		"Grams": rations_per_day.values()
@@ -264,12 +268,11 @@ def visualize_total_amount_available_over_time(rations_per_day):
 	    tooltip=["Date", "Grams"]
     ).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
-	with streamlit.beta_expander("View dataset"):
-		streamlit.dataframe(dataframe)
+	# with streamlit.beta_expander("View dataset"):
+	# 	streamlit.dataframe(dataframe)
 
 
 def visualize_total_calories_available_over_time(calories_per_day):
-	streamlit.header("Daily Bread")
 	dataframe = pandas.DataFrame({
 		"Date": [datetime.strptime(date, "%Y-%m-%d") for date in calories_per_day.keys()],
 		"Calories": calories_per_day.values()
@@ -280,8 +283,8 @@ def visualize_total_calories_available_over_time(calories_per_day):
 	    tooltip=["Date", "Calories"]
     ).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
-	with streamlit.beta_expander("View dataset"):
-		streamlit.dataframe(dataframe)
+	# with streamlit.beta_expander("View dataset"):
+	# 	streamlit.dataframe(dataframe)
 
 
 def visualize_amount_per_item_over_time(item_to_date_to_amount):
@@ -303,10 +306,9 @@ def visualize_amount_per_item_over_time(item_to_date_to_amount):
 	        scale=altair.Scale(scheme="plasma")
 	    )
 	).interactive()
-	streamlit.header("Breakdown by Food Item")
 	streamlit.altair_chart(chart, use_container_width=True)
-	with streamlit.beta_expander("View dataset"):
-		streamlit.dataframe(source)
+	# with streamlit.beta_expander("View dataset"):
+	# 	streamlit.dataframe(source)
 
 
 def visualize_calories_per_item_over_time(item_to_date_to_calories):
@@ -328,20 +330,27 @@ def visualize_calories_per_item_over_time(item_to_date_to_calories):
 	        scale=altair.Scale(scheme="plasma")
 	    )
 	).interactive()
-	streamlit.header("Breakdown by Food Item")
 	streamlit.altair_chart(chart, use_container_width=True)
-	with streamlit.beta_expander("View dataset"):
-		streamlit.dataframe(source)
+	# with streamlit.beta_expander("View dataset"):
+	# 	streamlit.dataframe(source)
 
 
 def render_title():
 	streamlit.sidebar.title("Łódź Rations Visualizer")
-	streamlit.sidebar.text("")
-	streamlit.sidebar.text("")
 
 
 def render_unit_dropdown():
-	return streamlit.sidebar.selectbox("Selected unit", options=["Calories (kcal)", "Mass (g)"])
+	streamlit.sidebar.text("")
+	streamlit.sidebar.text("")
+	streamlit.sidebar.text("")
+	streamlit.sidebar.text("")
+	streamlit.sidebar.text("")
+	streamlit.sidebar.text("")
+	return streamlit.sidebar.selectbox("How would you like to measure your rations?", options=["Calories (kcal)", "Mass (g)"])
+
+
+def render_rationing_strategy_dropdown():
+	return streamlit.sidebar.radio("What's your rationing strategy?", options=["Clairvoyant", "Measured", "Reckless abandon"], index=1)
 
 
 def render_date_slider(rations_per_day):
