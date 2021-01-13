@@ -15,7 +15,7 @@ def main():
 	strategy = render_rationing_strategy_dropdown()
 
 	# 1) Connect with Airtable.
-	rations_data_from_airtable = get_rations_rations_data_from_airtable()
+	rations_data_from_airtable = get_rations_data_from_airtable()
 	caloric_values_from_airtable= get_caloric_values_from_airtable()
 
 	# 2) Format the raw announcements from Airtable into a more workable form. Desired dictionary format:
@@ -45,7 +45,7 @@ def main():
 	# 	"Butter (g)": 150,
 	# 	"Kohlrabi (g)": 37,
 	# }
-	item_to_calories = format_caloric_values_from_airtable(caloric_values_from_airtable)
+	item_to_calories, item_to_food_group = format_caloric_values_from_airtable(caloric_values_from_airtable)
 
 	# 4) Transform the 'announcements' dictionary into a different dictionary with the format:
 	# 
@@ -89,6 +89,9 @@ def main():
 		streamlit.subheader(f"and this is what was available...")
 		streamlit.text("")
 		visualize_amount_per_item_over_time(item_to_date_to_amount)
+		streamlit.text("")
+		visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_food_group)
+
 	else:
 		streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the number of calories that were available to a resident of the Łódź ghetto over time...")
 		streamlit.text("")
@@ -99,10 +102,12 @@ def main():
 		streamlit.subheader(f"and this is what was available...")
 		streamlit.text("")
 		visualize_calories_per_item_over_time(item_to_date_to_calories)
+		streamlit.text("")
+		visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_to_food_group)
 
 
 @streamlit.cache(persist=True, show_spinner=False)
-def get_rations_rations_data_from_airtable():
+def get_rations_data_from_airtable():
 	AIRTABLE_API_KEY = "keygCUTG6e5DvySOR"
 	AIRTABLE_BASE_ID = "appXanlsMeENo7O1N"
 	AIRTABLE_TABLE_NAME = "Ration Announcements"
@@ -177,13 +182,17 @@ def format_rations_data_from_airtable(rations_data_from_airtable):
 @streamlit.cache(persist=True, allow_output_mutation=True, show_spinner=False)
 def format_caloric_values_from_airtable(caloric_values_from_airtable):
 	item_to_calories = {}
+	item_to_food_group = {}
 	for thing in caloric_values_from_airtable:
 		data = thing["fields"]
 
 		item = data["Label"]
 		kcals_per_100g = data["Caloric Value (kcal/100g)"]
 		item_to_calories[item] = kcals_per_100g
-	return item_to_calories
+
+		food_group = data["Food Group"]
+		item_to_food_group[item] = food_group
+	return item_to_calories, item_to_food_group
 
 
 @streamlit.cache(show_spinner=False)
@@ -334,6 +343,52 @@ def visualize_calories_per_item_over_time(item_to_date_to_calories):
 	# with streamlit.beta_expander("View dataset"):
 	# 	streamlit.dataframe(source)
 
+def visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_food_group):
+	dataframes = []
+	for item in item_to_date_to_amount.keys():
+		dataframe = pandas.DataFrame({
+			"Food Group": item_to_food_group[item],
+			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amount[item].keys()],
+			"Amount": item_to_date_to_amount[item].values()
+		})
+		dataframes.append(dataframe)
+	source = pandas.concat(dataframes)
+	chart = altair.Chart(source).mark_area().encode(
+	    altair.X("Date:T",
+	        axis=altair.Axis(labelAngle=-45),
+	    ),
+	    altair.Y("sum(Amount):Q", stack="center", axis=None),
+	    altair.Color("Food Group:N",
+	        scale=altair.Scale(scheme="plasma")
+	    )
+	).interactive()
+	streamlit.altair_chart(chart, use_container_width=True)
+	# with streamlit.beta_expander("View dataset"):
+	# 	streamlit.dataframe(source)
+
+
+def visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_to_food_group):
+	dataframes = []
+	for item in item_to_date_to_calories.keys():
+		dataframe = pandas.DataFrame({
+			"Food Group": item_to_food_group[item],
+			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_calories[item].keys()],
+			"Calories": item_to_date_to_calories[item].values()
+		})
+		dataframes.append(dataframe)
+	source = pandas.concat(dataframes)
+	chart = altair.Chart(source).mark_area().encode(
+	    altair.X("Date:T",
+	        axis=altair.Axis(labelAngle=-45),
+	    ),
+	    altair.Y("sum(Calories):Q", stack="center", axis=None),
+	    altair.Color("Food Group:N",
+	        scale=altair.Scale(scheme="plasma")
+	    )
+	).interactive()
+	streamlit.altair_chart(chart, use_container_width=True)
+	# with streamlit.beta_expander("View dataset"):
+	# 	streamlit.dataframe(source)
 
 def render_title():
 	streamlit.sidebar.title("Łódź Rations Visualizer")
@@ -350,7 +405,9 @@ def render_unit_dropdown():
 
 
 def render_rationing_strategy_dropdown():
-	return streamlit.sidebar.radio("What's your rationing strategy?", options=["Clairvoyant", "Measured", "Reckless abandon"], index=1)
+	return streamlit.sidebar.radio("What's your rationing strategy?", options=["Clairvoyant (always with a morsel put aside)",
+	 "Even (distribute daily allotment with faith in announcement information)",
+	 "Maximize (full whenever possible)"], index=1)
 
 
 def render_date_slider(rations_per_day):
