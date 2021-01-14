@@ -90,6 +90,11 @@ def main():
 		streamlit.text("")
 		visualize_amount_per_item_over_time(item_to_date_to_amount)
 		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.subheader(f"broken down by food group...")
+		streamlit.text("")
 		visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_food_group)
 
 	else:
@@ -102,6 +107,11 @@ def main():
 		streamlit.subheader(f"and this is what was available...")
 		streamlit.text("")
 		visualize_calories_per_item_over_time(item_to_date_to_calories)
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.text("")
+		streamlit.subheader(f"broken down by food group...")
 		streamlit.text("")
 		visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_to_food_group)
 
@@ -346,8 +356,16 @@ def visualize_calories_per_item_over_time(item_to_date_to_calories):
 def visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_food_group):
 	dataframes = []
 	for item in item_to_date_to_amount.keys():
+
+		# Try to get the item's food group.
+		# If there isn't an entry to this item in the food group lookup, that probably means this item isn't edible.
+		try:
+			food_group = item_to_food_group[item]
+		except KeyError:
+			continue
+
 		dataframe = pandas.DataFrame({
-			"Food Group": item_to_food_group[item],
+			"Food Group": food_group,
 			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amount[item].keys()],
 			"Amount": item_to_date_to_amount[item].values()
 		})
