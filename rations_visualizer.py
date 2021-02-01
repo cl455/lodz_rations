@@ -1,4 +1,5 @@
 import altair
+import numpy
 import pandas
 import streamlit
 import string
@@ -78,42 +79,50 @@ def main():
 	total_amount_by_date = calculate_total_amount_available_over_time(item_to_date_to_amount)
 	total_calories_by_date = calculate_total_calories_available_over_time(item_to_date_to_calories)
 
+	if "Clairvoyant" in strategy:
+		total_amount_by_date = calculate_total_available_over_time_with_clairvoyance(total_amount_by_date)
+		total_calories_by_date = calculate_total_available_over_time_with_clairvoyance(total_calories_by_date)
+	elif "Maximize" in strategy:
+		total_amount_by_date = calculate_total_amount_available_over_time_while_maximizing(total_amount_by_date)
+
 	# 8) Visualize the total amount of food available each day over time.
 	if unit == "Mass (g)":
 		streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the total amount of food that was available to a resident of the Łódź ghetto over time...")
 		streamlit.text("")
 		visualize_total_amount_available_over_time(total_amount_by_date)
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.subheader(f"and this is what was available...")
-		streamlit.text("")
-		visualize_amount_per_item_over_time(item_to_date_to_amount)
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.subheader(f"broken down by food group...")
-		streamlit.text("")
-		visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_food_group)
+		if "Clairvoyant" not in strategy:
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.subheader(f"and this is what was available...")
+			streamlit.text("")
+			visualize_amount_per_item_over_time(item_to_date_to_amount)
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.subheader(f"broken down by food group...")
+			streamlit.text("")
+			visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_food_group)
 
 	else:
 		streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the number of calories that were available to a resident of the Łódź ghetto over time...")
 		streamlit.text("")
 		visualize_total_calories_available_over_time(total_calories_by_date)
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.subheader(f"and this is what was available...")
-		streamlit.text("")
-		visualize_calories_per_item_over_time(item_to_date_to_calories)
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.text("")
-		streamlit.subheader(f"broken down by food group...")
-		streamlit.text("")
-		visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_to_food_group)
+		if "Clairvoyant" not in strategy:
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.subheader(f"and this is what was available...")
+			streamlit.text("")
+			visualize_calories_per_item_over_time(item_to_date_to_calories)
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.text("")
+			streamlit.subheader(f"broken down by food group...")
+			streamlit.text("")
+			visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_to_food_group)
 
 
 @streamlit.cache(persist=True, show_spinner=False)
@@ -136,7 +145,6 @@ def get_caloric_values_from_airtable():
 	return caloric_values_from_airtable
 
 
-@streamlit.cache(persist=True, allow_output_mutation=True, show_spinner=False)
 def format_rations_data_from_airtable(rations_data_from_airtable):
 	announcements = {}
 	item_to_date_to_amount = {}
@@ -189,7 +197,6 @@ def format_rations_data_from_airtable(rations_data_from_airtable):
 	return announcements, item_to_date_to_amount
 
 
-@streamlit.cache(persist=True, allow_output_mutation=True, show_spinner=False)
 def format_caloric_values_from_airtable(caloric_values_from_airtable):
 	item_to_calories = {}
 	item_to_food_group = {}
@@ -205,7 +212,6 @@ def format_caloric_values_from_airtable(caloric_values_from_airtable):
 	return item_to_calories, item_to_food_group
 
 
-@streamlit.cache(show_spinner=False)
 def calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amount):
 	for announcement_date, announcement_info in announcements.items():
 		for item, ration_amount in announcement_info["items"].items():
@@ -222,7 +228,6 @@ def calculate_available_rations_per_item_per_day(announcements, item_to_date_to_
 	return item_to_date_to_amount
 
 
-@streamlit.cache(show_spinner=False)
 def calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_to_calories):
 	item_to_date_to_calories = {}
 	for item in item_to_date_to_amount.keys():
@@ -233,7 +238,6 @@ def calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_t
 	return item_to_date_to_calories
 
 
-@streamlit.cache(show_spinner=False)
 def visualize_amount_per_item_available_over_time(item_to_date_to_amount):
 	for item in item_to_date_to_amount.keys():
 		streamlit.header(item)
@@ -252,7 +256,6 @@ def visualize_amount_per_item_available_over_time(item_to_date_to_amount):
 		col2.dataframe(dataframe)
 
 
-@streamlit.cache(show_spinner=False)
 def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	rations_per_day = {}
 	for item in item_to_date_to_amount.keys():
@@ -264,7 +267,6 @@ def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	return rations_per_day
 
 
-@streamlit.cache(show_spinner=False)
 def calculate_total_calories_available_over_time(item_to_date_to_calories):
 	calories_per_day = {}
 	for item in item_to_date_to_calories.keys():
@@ -274,6 +276,59 @@ def calculate_total_calories_available_over_time(item_to_date_to_calories):
 			else: 
 				calories_per_day[date] = item_to_date_to_calories[item][date]	
 	return calories_per_day
+
+
+@streamlit.cache(persist=True, show_spinner=False)
+def calculate_total_available_over_time_with_clairvoyance(total_by_date):
+	lookahead_window = 14
+	total_by_date = _zero_fill_dates_without_food(total_by_date)
+	dates_without_food = _get_dates_without_food(total_by_date)
+	for date_without_food in dates_without_food:
+		start_date = date_without_food - timedelta(days=lookahead_window)
+		date_with_most_available = _get_date_with_most_available(total_by_date, start_date, date_without_food)
+		while total_by_date[date_with_most_available.strftime("%Y-%m-%d")] > total_by_date[date_without_food.strftime("%Y-%m-%d")]:
+			total_by_date[date_without_food.strftime("%Y-%m-%d")] += 1
+			total_by_date[date_with_most_available.strftime("%Y-%m-%d")] -= 1
+			date_with_most_available = _get_date_with_most_available(total_by_date, start_date, date_without_food)
+	return total_by_date
+
+
+def _zero_fill_dates_without_food(total_by_date):
+	start_date = datetime.strptime(list(total_by_date.keys())[0], "%Y-%m-%d")
+	end_date = datetime.strptime(list(total_by_date.keys())[-1], "%Y-%m-%d")
+	num_days_in_dataset = (end_date - start_date).days
+	for days_since_start in range(num_days_in_dataset):
+		date = start_date + timedelta(days_since_start)
+		date_string = date.strftime("%Y-%m-%d")
+		if date_string not in total_by_date.keys():
+			total_by_date[date_string] = 0
+	return total_by_date
+
+
+def _get_dates_without_food(total_by_date):
+	dates_without_food = []
+	start_date = datetime.strptime(list(total_by_date.keys())[0], "%Y-%m-%d")
+	end_date = datetime.strptime(list(total_by_date.keys())[-1], "%Y-%m-%d")
+	num_days_in_dataset = (end_date - start_date).days
+	for days_since_start in range(num_days_in_dataset):
+		date = start_date + timedelta(days_since_start)
+		date_string = date.strftime("%Y-%m-%d")
+		if date_string not in total_by_date.keys() or total_by_date[date_string] == 0:
+			dates_without_food.append(date)
+	return dates_without_food
+
+
+def _get_date_with_most_available(total_by_date, start_date, end_date):
+	max_value = total_by_date[end_date.strftime("%Y-%m-%d")]
+	max_date = end_date
+	for days in range((end_date - start_date).days):
+		date = start_date + timedelta(days=days)
+		if date.strftime("%Y-%m-%d") not in total_by_date.keys():
+			continue
+		if total_by_date[date.strftime("%Y-%m-%d")] > max_value:
+			max_value = total_by_date[date.strftime("%Y-%m-%d")]
+			max_date = date
+	return max_date
 
 
 def visualize_total_amount_available_over_time(rations_per_day):

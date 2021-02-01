@@ -16,5 +16,6 @@ streamlit run rations_visualizer.py
 ctrl + C
 
 ```
+
 ##Update code from Github
 git pull 
