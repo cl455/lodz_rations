@@ -1,6 +1,5 @@
 ## Dear Christine
 
-```
 If you're reading this, it means that you remembered the answer to 'How do I git pull?' and that your presentation is probably coming up. I always pictured myself here on this day, to make sure you set an alarm for the wee hours, to ask you how it went afterwards, and to wish I could be there to celebrate with you, even while you insisted that you'll still have months of fellowship research left to conduct.
 
 I left some notes in the README about how you could host this visualizer online so everyone at the museum can play with it on their own computers, and added some of the things that we had talked about doing.
@@ -12,7 +11,6 @@ No poem on a sticky note this time, because I know they'll hear you tell the sto
 I hope you are well and that you're finding the joys that you deserve. Rooting for you, always.
 
 Andrew
-```
 
 ## Developing
 
