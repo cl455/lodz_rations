@@ -129,7 +129,7 @@ def main():
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.text("")
-			streamlit.subheader(f"Overall, this is what was available...")
+			streamlit.subheader(f"These were the items available...")
 			streamlit.text("")
 			visualize_amount_per_item_over_time(item_to_date_to_amount)
 			streamlit.text("")
@@ -145,20 +145,20 @@ def main():
 			visualize_total_amount_available_over_time(total_amount_by_date)
 			streamlit.text("")
 			days_without_food = calculate_number_of_days_without_food(total_amount_by_date)
-			streamlit.subheader(f"This would have led to an estimated {days_without_food} days without food in the {rations_duration} days between {first_announcement_date} and {last_announcement_date}.")	
-			if "Even" in strategy:
-				streamlit.text("")
-				streamlit.text("")
-				streamlit.text("")
-				streamlit.subheader(f"and this is what was available...")
-				streamlit.text("")
-				visualize_amount_per_item_over_time(item_to_date_to_amount)
-				streamlit.text("")
-				streamlit.text("")
-				streamlit.text("")		
+			streamlit.subheader(f"This would have led to an estimated {days_without_food} days without food in the {rations_duration} days between {first_announcement_date} and {last_announcement_date}.")
+			# if "Even" in strategy:
+			# 	streamlit.text("")
+			# 	streamlit.text("")
+			# 	streamlit.text("")
+			# 	streamlit.subheader(f"and this is what was available...")
+			# 	streamlit.text("")
+			# 	visualize_amount_per_item_over_time(item_to_date_to_amount)
+			# 	streamlit.text("")
+			# 	streamlit.text("")
+			# 	streamlit.text("")
 	else:
 		if strategy == "None":
-			streamlit.subheader(f"This is the number of calories from food rations that were available to a resident of the Łódź ghetto over time...")
+			streamlit.subheader(f"This is the caloric value of food rations that were available to a resident of the Łódź ghetto over time...")
 			streamlit.text("")
 			visualize_total_calories_available_over_time(total_calories_by_date)
 			streamlit.text("")
@@ -175,22 +175,22 @@ def main():
 			streamlit.text("")
 			visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_to_food_group)
 		else:
-			streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the number of calories that were available to a resident of the Łódź ghetto over time...")
+			streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the caloric value of food rations that were available to a resident of the Łódź ghetto over time...")
 			streamlit.text("")
 			visualize_total_calories_available_over_time(total_calories_by_date)
 			streamlit.text("")
 			days_without_food = calculate_number_of_days_without_food(total_calories_by_date)
 			streamlit.subheader(f"This would have led to an estimated {days_without_food} days without food in the {rations_duration} days between {first_announcement_date} and {last_announcement_date}.")
-			if "Even" in strategy:
-				streamlit.text("")
-				streamlit.text("")
-				streamlit.text("")
-				streamlit.subheader(f"and this is what was available...")
-				streamlit.text("")
-				visualize_amount_per_item_over_time(item_to_date_to_amount)
-				streamlit.text("")
-				streamlit.text("")
-				streamlit.text("")	
+			# if "Even" in strategy:
+			# 	streamlit.text("")
+			# 	streamlit.text("")
+			# 	streamlit.text("")
+			# 	streamlit.subheader(f"and this is what was available...")
+			# 	streamlit.text("")
+			# 	visualize_amount_per_item_over_time(item_to_date_to_amount)
+			# 	streamlit.text("")
+			# 	streamlit.text("")
+			# 	streamlit.text("")
 
 @streamlit.cache(persist=True, show_spinner=False)
 def get_rations_data_from_airtable():
@@ -264,7 +264,7 @@ def format_rations_data_from_airtable(rations_data_from_airtable):
 	return announcements, item_to_date_to_amount
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+# @streamlit.cache(persist=True, show_spinner=False)
 def format_caloric_values_from_airtable(caloric_values_from_airtable):
 	item_to_calories = {}
 	item_to_food_group = {}
@@ -326,7 +326,7 @@ def visualize_amount_per_item_available_over_time(item_to_date_to_amount):
 		col2.dataframe(dataframe)
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+# @streamlit.cache(persist=True, show_spinner=False)
 def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	rations_per_day = {}
 	for item in item_to_date_to_amount.keys():
@@ -338,7 +338,7 @@ def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	return rations_per_day
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+# @streamlit.cache(persist=True, show_spinner=False)
 def calculate_total_calories_available_over_time(item_to_date_to_calories):
 	calories_per_day = {}
 	for item in item_to_date_to_calories.keys():
