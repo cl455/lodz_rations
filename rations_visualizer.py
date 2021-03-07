@@ -35,6 +35,10 @@ def main():
 	render_title()
 	unit = render_unit_dropdown()
 	strategy = render_rationing_strategy_dropdown()
+	source = streamlit.sidebar.beta_expander("Source:", False)
+	source.write(
+		"The visualizations draw from a dataset compiled from rations announcements found in RG-67.019M, Nachman Zonabend collection, United States Holocaust Memorial Museum Archives, Washington, DC."
+		)
 
 	lookahead_window = 7
 	if "Clairvoyant" in strategy:
@@ -135,7 +139,7 @@ def main():
 		else:	# Visualize in grams according to optionals strategy selection. Does not include the colorful graphs.
 			streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the total amount of food rations that was available to a resident of the Łódź ghetto over time...")
 			streamlit.text("")
-			if "Even" in strategy:			
+			if "Even" in strategy:
 				visualize_total_amount_available_over_time(even_amount)
 				days_without_food = calculate_number_of_days_without_food(even_amount)
 			if "Clairvoyant" in strategy:
@@ -197,7 +201,7 @@ def get_caloric_values_from_airtable():
 	caloric_values_from_airtable = airtable.get_all()
 	return caloric_values_from_airtable
 
-@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
+#@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def format_rations_data_from_airtable(rations_data_from_airtable):
 	announcements = {}
 	item_to_date_to_amount = {}
@@ -342,7 +346,7 @@ def calculate_total_calories_per_announcement(item_to_date_to_calories):
 	return calories_per_day
 
 
-@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
+@streamlit.cache(allow_output_mutation=True, suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	rations_per_day = {}
 	for item in item_to_date_to_amount.keys():
@@ -354,7 +358,7 @@ def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	return rations_per_day
 
 
-@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
+@streamlit.cache(allow_output_mutation=True, suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_total_calories_available_over_time(item_to_date_to_calories):
 	calories_per_day = {}
 	for item in item_to_date_to_calories.keys():
@@ -366,7 +370,7 @@ def calculate_total_calories_available_over_time(item_to_date_to_calories):
 	return calories_per_day
 
 
-@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
+@streamlit.cache(allow_output_mutation=True, suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_total_available_over_time_with_clairvoyance(total_by_date, lookahead_window=7):
 	total_by_date = _zero_fill_dates_without_food(total_by_date)
 	dates_without_food = _get_dates_without_food(total_by_date)
