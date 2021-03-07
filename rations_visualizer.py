@@ -1,30 +1,3 @@
-# Dear Christine,
-#
-# If you're reading this, it means that you remembered the answer to 'How do I git pull?' and that your presentation
-# is probably coming up. I always pictured myself here on this day, to make sure you set an alarm for the wee hours,
-# to ask you how it went afterwards, and to wish I could be there to celebrate with you, even while you insisted that
-# you'll still have months of fellowship research left to conduct.
-#
-# I left some notes in the README about how you could host this visualizer online so everyone at the museum can play
-# with it on their own computers, and added some of the things that we had talked about doing.
-#
-# I know that you sometimes hesitated to ask me for an extra pair of eyes on this, whether it was because you thought
-# maybe I'd rather be watching Grey's instead, or because you yourself didn't really want to work on it at that moment
-# either. And while I do rag on being able to do this work, I enjoyed every minute of being able to work on it with you.
-# You've had a pesky track record of tricking me into caring about things that I never thought I would care about
-# (digital humanitus, LA, data visualiations, you), and it's because you care so deeply so much of the time. You might sometimes
-# think that you whine, that you look for every excuse to instead watch one of Britney's vlogs, but watching you shut yourself in a
-# room to edit your thesis or transcribe ration announcements made me wish I was doing the same. And I think that you know
-# that you're a badass. I've told you about a person in my life who's inspired me to be a better version of myself, but I
-# think you might be that person now. You inspire me.
-#
-# No poem on a sticky note this time, because I know they'll hear you tell the story of this work and be mesmerized once
-# again. Let me know what type of praise they heap onto you.
-#
-# I hope you are well and that you're finding the joys that you deserve. Rooting for you, always.
-#
-# Andrew
-
 import altair
 import numpy
 import pandas
@@ -34,13 +7,22 @@ from airtable import Airtable
 from collections import OrderedDict
 from datetime import datetime, timedelta, date
 
+
+########################
+# Runs the Streamlit app
+########################
 def main():
+	first_announcement_date = date(1940, 3, 13).strftime("%B %d, %Y")
+	last_announcement_date = date(1944, 7, 18).strftime("%B %d, %Y")
+	rations_duration = (date(1944, 7, 18) - date(1940, 3, 13)).days
+
 	# 1) Render the sidebar
 	streamlit.set_page_config(page_title="Łódź Rations Visualizer")
 	render_title()
 	unit = render_unit_dropdown()
 	strategy = render_rationing_strategy_dropdown()
 
+	lookahead_window = 7
 	if "Clairvoyant" in strategy:
 		lookahead_window = render_lookahead_dropdown()
 
@@ -77,6 +59,8 @@ def main():
 	# }
 	item_to_calories, item_to_food_group = format_caloric_values_from_airtable(caloric_values_from_airtable)
 
+	
+
 	# 5) Transform the 'announcements' dictionary into a different dictionary with the format:
 	#
 	# {
@@ -88,7 +72,8 @@ def main():
 	# }
 	#
 	# Mapping each provision to dictionary of dates to the amount available of that provision on that date.
-	item_to_date_to_amount = calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amount)
+	item_to_date_to_announced_amount = calculate_announced_amount_per_item_per_day(announcements, item_to_date_to_amount)
+	item_to_date_to_even_amount = calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amount)
 
 	# 6) Perform a similar transformation with the caloric data, split out by day:
 	#
@@ -99,99 +84,88 @@ def main():
 	# 		...
 	# 	}
 	# }
-	item_to_date_to_calories = calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_to_calories)
+	item_to_date_to_announced_calories = calculate_available_calories_per_item_per_day(item_to_date_to_announced_amount, item_to_calories)
+	item_to_date_to_even_calories = calculate_available_calories_per_item_per_day(item_to_date_to_even_amount, item_to_calories)
 
-	# 7) Visualize the amount available per day of each item mentioned.
-	# visualize_amount_per_item_available_over_time(item_to_date_to_amount)
+	# 7) Calculate the total of amount of food announced on each announcement date, both both mass and calories.
+	announced_amount = calculate_total_amount_per_announcement(item_to_date_to_announced_amount)
+	announced_calories = calculate_total_calories_per_announcement(item_to_date_to_announced_calories)
 
 	# 8) Calculate the total amount of food available each day over time, by both mass and calories.
-	total_amount_by_date = calculate_total_amount_available_over_time(item_to_date_to_amount)
-	total_calories_by_date = calculate_total_calories_available_over_time(item_to_date_to_calories)
+	even_amount = calculate_total_amount_available_over_time(item_to_date_to_even_amount)
+	even_calories = calculate_total_calories_available_over_time(item_to_date_to_even_calories)
 
 	# 9) If the user chose to visualize with a 'Clairvoyant' rationing strategy, calculate the total amount of food
 	# available each day over time, by both mass and calories using a lookahead window of either 7/14/30 days.
-	if "Clairvoyant" in strategy:
-		total_amount_by_date = calculate_total_available_over_time_with_clairvoyance(total_amount_by_date, lookahead_window)
-		total_calories_by_date = calculate_total_available_over_time_with_clairvoyance(total_calories_by_date, lookahead_window)
-
-	first_announcement_date = date(1940, 3, 13).strftime("%B %d, %Y")
-	last_announcement_date = date(1944, 7, 18).strftime("%B %d, %Y")
-	rations_duration = (date(1944, 7, 18) - date(1940, 3, 13)).days
-
+	clairvoyant_amount = calculate_total_available_over_time_with_clairvoyance(even_amount, lookahead_window)
+	clairvoyant_calories = calculate_total_available_over_time_with_clairvoyance(even_calories, lookahead_window)
 
 	# 10) Visualize the total amount of food available each day over time.
 	if unit == "Mass (g)":
+		# Visualize main graph + 2 colorful graphs (in grams).
 		if strategy == "None":
-			# Visualize main graph + 2 colorful graphs
 			streamlit.subheader(f"This is the total amount of food rations that was available to a resident of the Łódź ghetto over time...")
 			streamlit.text("")
-			visualize_total_amount_available_over_time(total_amount_by_date)
+			visualize_total_amount_available_over_time(announced_amount)
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.subheader(f"These were the items available...")
 			streamlit.text("")
-			visualize_amount_per_item_over_time(item_to_date_to_amount)
+			visualize_amount_per_item_over_time(item_to_date_to_announced_amount)
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.subheader(f"broken down by food group...")
 			streamlit.text("")
-			visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_food_group)
-		else:
+			visualize_amount_per_food_group_over_time(item_to_date_to_announced_amount, item_to_food_group)
+		else:	# Visualize in grams according to optionals strategy selection. Does not include the colorful graphs.
 			streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the total amount of food rations that was available to a resident of the Łódź ghetto over time...")
 			streamlit.text("")
-			visualize_total_amount_available_over_time(total_amount_by_date)
+			if "Even" in strategy:			
+				visualize_total_amount_available_over_time(even_amount)
+				days_without_food = calculate_number_of_days_without_food(even_amount)
+			if "Clairvoyant" in strategy:
+				visualize_total_amount_available_over_time(clairvoyant_amount)
+				days_without_food = calculate_number_of_days_without_food(clairvoyant_amount)
 			streamlit.text("")
-			days_without_food = calculate_number_of_days_without_food(total_amount_by_date)
 			streamlit.subheader(f"This would have led to an estimated {days_without_food} days without food in the {rations_duration} days between {first_announcement_date} and {last_announcement_date}.")
-			# if "Even" in strategy:
-			# 	streamlit.text("")
-			# 	streamlit.text("")
-			# 	streamlit.text("")
-			# 	streamlit.subheader(f"and this is what was available...")
-			# 	streamlit.text("")
-			# 	visualize_amount_per_item_over_time(item_to_date_to_amount)
-			# 	streamlit.text("")
-			# 	streamlit.text("")
-			# 	streamlit.text("")
 	else:
+		# Visualize main graph + 2 colorful graphs (in calories).
 		if strategy == "None":
 			streamlit.subheader(f"This is the caloric value of food rations that were available to a resident of the Łódź ghetto over time...")
 			streamlit.text("")
-			visualize_total_calories_available_over_time(total_calories_by_date)
+			visualize_total_calories_available_over_time(announced_calories)
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.subheader(f"and this is what was available...")
 			streamlit.text("")
-			visualize_calories_per_item_over_time(item_to_date_to_calories)
+			visualize_calories_per_item_over_time(item_to_date_to_announced_calories)
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.text("")
 			streamlit.subheader(f"broken down by food group...")
 			streamlit.text("")
-			visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_to_food_group)
-		else:
+			visualize_calories_per_food_group_over_time(item_to_date_to_announced_calories, item_to_food_group)
+		else:	# Visualize in calories according to optionals strategy selection. Does not include the colorful graphs.
 			streamlit.subheader(f"Given a {strategy.lower()} rationing strategy, this is the caloric value of food rations that were available to a resident of the Łódź ghetto over time...")
 			streamlit.text("")
-			visualize_total_calories_available_over_time(total_calories_by_date)
+			if "Even" in strategy:
+				visualize_total_calories_available_over_time(even_calories)
+				days_without_food = calculate_number_of_days_without_food(even_calories)
+			if "Clairvoyant" in strategy:
+				visualize_total_calories_available_over_time(clairvoyant_amount)
+				days_without_food = calculate_number_of_days_without_food(clairvoyant_amount)
 			streamlit.text("")
-			days_without_food = calculate_number_of_days_without_food(total_calories_by_date)
 			streamlit.subheader(f"This would have led to an estimated {days_without_food} days without food in the {rations_duration} days between {first_announcement_date} and {last_announcement_date}.")
-			# if "Even" in strategy:
-			# 	streamlit.text("")
-			# 	streamlit.text("")
-			# 	streamlit.text("")
-			# 	streamlit.subheader(f"and this is what was available...")
-			# 	streamlit.text("")
-			# 	visualize_amount_per_item_over_time(item_to_date_to_amount)
-			# 	streamlit.text("")
-			# 	streamlit.text("")
-			# 	streamlit.text("")
 
+
+#############################
+# Airtable-related functions:
+#############################
 @streamlit.cache(persist=True, show_spinner=False)
 def get_rations_data_from_airtable():
 	AIRTABLE_API_KEY = "keygCUTG6e5DvySOR"
@@ -280,6 +254,24 @@ def format_caloric_values_from_airtable(caloric_values_from_airtable):
 	return item_to_calories, item_to_food_group
 
 
+########################################################################
+# Functions that do math to create dictionary datasets in helpful format
+# (calculations, data transformations, augmentations):
+########################################################################
+@streamlit.cache(persist=True, show_spinner=False)
+def calculate_announced_amount_per_item_per_day(announcements, item_to_date_to_amount):
+	for announcement_date, announcement_info in announcements.items():
+		for item, ration_amount in announcement_info["items"].items():
+			# ration_effective_start_date = datetime.strptime(announcement_info["start_date"], "%Y-%m-%d")
+			item_to_date_to_amount[item][announcement_info["start_date"]] = ration_amount
+
+	# Order each item"s mapping of dates to amount available on that date by dates in ascending order.
+	for item in item_to_date_to_amount.keys():
+		item_to_date_to_amount[item] = OrderedDict(sorted(item_to_date_to_amount[item].items()))
+
+	return item_to_date_to_amount
+
+
 @streamlit.cache(persist=True, show_spinner=False)
 def calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amount):
 	for announcement_date, announcement_info in announcements.items():
@@ -297,7 +289,6 @@ def calculate_available_rations_per_item_per_day(announcements, item_to_date_to_
 	return item_to_date_to_amount
 
 
-@streamlit.cache(persist=True, show_spinner=False)
 def calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_to_calories):
 	item_to_date_to_calories = {}
 	for item in item_to_date_to_amount.keys():
@@ -308,25 +299,28 @@ def calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_t
 	return item_to_date_to_calories
 
 
-def visualize_amount_per_item_available_over_time(item_to_date_to_amount):
+def calculate_total_amount_per_announcement(item_to_date_to_amount):
+	rations_per_day = {}
 	for item in item_to_date_to_amount.keys():
-		streamlit.header(item)
-		dataframe = pandas.DataFrame({
-			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amount[item].keys()],
-			"Grams": item_to_date_to_amount[item].values()
-
-		})
-		chart = altair.Chart(dataframe).mark_line().encode(
-		    x=altair.X("Date:T", scale=altair.Scale(zero=False), axis=altair.Axis(labelAngle=-45)),
-		    y=altair.Y("Grams:Q"),
-		    tooltip=["Date", "Grams"]
-	    ).interactive()
-		col1, col2 = streamlit.beta_columns([2, 1])
-		col1.altair_chart(chart, use_container_width=True)
-		col2.dataframe(dataframe)
+		for date in item_to_date_to_amount[item].keys():
+			if date in rations_per_day:
+				rations_per_day[date] += item_to_date_to_amount[item][date]
+			else:
+				rations_per_day[date] = item_to_date_to_amount[item][date]
+	return rations_per_day
 
 
-# @streamlit.cache(persist=True, show_spinner=False)
+def calculate_total_calories_per_announcement(item_to_date_to_calories):
+	calories_per_day = {}
+	for item in item_to_date_to_calories.keys():
+		for date in item_to_date_to_calories[item].keys():
+			if date in calories_per_day:
+				calories_per_day[date] += item_to_date_to_calories[item][date]
+			else:
+				calories_per_day[date] = item_to_date_to_calories[item][date]
+	return calories_per_day
+
+
 def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	rations_per_day = {}
 	for item in item_to_date_to_amount.keys():
@@ -338,7 +332,6 @@ def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	return rations_per_day
 
 
-# @streamlit.cache(persist=True, show_spinner=False)
 def calculate_total_calories_available_over_time(item_to_date_to_calories):
 	calories_per_day = {}
 	for item in item_to_date_to_calories.keys():
@@ -362,6 +355,19 @@ def calculate_total_available_over_time_with_clairvoyance(total_by_date, lookahe
 			total_by_date[date_with_most_available.strftime("%Y-%m-%d")] -= 1
 			date_with_most_available = _get_date_with_most_available(total_by_date, start_date, date_without_food)
 	return total_by_date
+
+
+def calculate_number_of_days_without_food(total_by_date):
+	number_of_days_without_food = 0
+	start_date = datetime.strptime(list(total_by_date.keys())[0], "%Y-%m-%d")
+	end_date = datetime.strptime(list(total_by_date.keys())[-1], "%Y-%m-%d")
+	num_days_in_dataset = (end_date - start_date).days
+	for days_since_start in range(num_days_in_dataset):
+		date = start_date + timedelta(days_since_start)
+		date_string = date.strftime("%Y-%m-%d")
+		if date_string not in total_by_date.keys() or total_by_date[date_string] == 0:
+			number_of_days_without_food += 1
+	return number_of_days_without_food
 
 
 def _zero_fill_dates_without_food(total_by_date):
@@ -389,19 +395,6 @@ def _get_dates_without_food(total_by_date):
 	return dates_without_food
 
 
-def calculate_number_of_days_without_food(total_by_date):
-	number_of_days_without_food = 0
-	start_date = datetime.strptime(list(total_by_date.keys())[0], "%Y-%m-%d")
-	end_date = datetime.strptime(list(total_by_date.keys())[-1], "%Y-%m-%d")
-	num_days_in_dataset = (end_date - start_date).days
-	for days_since_start in range(num_days_in_dataset):
-		date = start_date + timedelta(days_since_start)
-		date_string = date.strftime("%Y-%m-%d")
-		if date_string not in total_by_date.keys() or total_by_date[date_string] == 0:
-			number_of_days_without_food += 1
-	return number_of_days_without_food
-
-
 def _get_date_with_most_available(total_by_date, start_date, end_date):
 	max_value = total_by_date[end_date.strftime("%Y-%m-%d")]
 	max_date = end_date
@@ -415,6 +408,48 @@ def _get_date_with_most_available(total_by_date, start_date, end_date):
 	return max_date
 
 
+##################################################################################
+# Functions that do the job of rendering graphs, toggles, dropdowns on the screen
+##################################################################################
+def visualize_amount_per_item_available_over_time(item_to_date_to_amount):
+	for item in item_to_date_to_amount.keys():
+		streamlit.header(item)
+		dataframe = pandas.DataFrame({
+			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amount[item].keys()],
+			"Grams": item_to_date_to_amount[item].values()
+
+		})
+		chart = altair.Chart(dataframe).mark_line().encode(
+		    x=altair.X("Date:T", scale=altair.Scale(zero=False), axis=altair.Axis(labelAngle=-45)),
+		    y=altair.Y("Grams:Q"),
+		    tooltip=["Date", "Grams"]
+	    ).interactive()
+		col1, col2 = streamlit.beta_columns([2, 1])
+		col1.altair_chart(chart, use_container_width=True)
+		col2.dataframe(dataframe)
+
+
+def visualize_announcements_by_item_in_grams(announcements):
+	dataframes = []
+	for item in item_to_date_to_amount.keys():
+		dataframe = pandas.DataFrame({
+			"Item": item,
+			"Date": [datetime.strptime(date, "%Y-%m-%d") for date in item_to_date_to_amount[item].keys()],
+			"Amount": item_to_date_to_amount[item].values()
+		})
+		dataframes.append(dataframe)
+	source = pandas.concat(dataframes)
+	chart = altair.Chart(source).mark_area().encode(
+	    altair.X("Date:T",
+	        axis=altair.Axis(labelAngle=-45),
+	    ),
+	    altair.Y("sum(Amount):Q", stack="center", axis=None),
+	    altair.Color("Item:N",
+	        scale=altair.Scale(scheme="plasma")
+	    )
+	).interactive()
+	streamlit.altair_chart(chart, use_container_width=True)
+
 def visualize_total_amount_available_over_time(rations_per_day):
 	dataframe = pandas.DataFrame({
 		"Date": [datetime.strptime(date, "%Y-%m-%d") for date in rations_per_day.keys()],
@@ -426,8 +461,6 @@ def visualize_total_amount_available_over_time(rations_per_day):
 	    tooltip=["Date", "Grams"]
     ).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
-	# with streamlit.beta_expander("View dataset"):
-	# 	streamlit.dataframe(dataframe)
 
 
 def visualize_total_calories_available_over_time(calories_per_day):
@@ -441,8 +474,6 @@ def visualize_total_calories_available_over_time(calories_per_day):
 	    tooltip=["Date", "Calories"]
     ).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
-	# with streamlit.beta_expander("View dataset"):
-	# 	streamlit.dataframe(dataframe)
 
 
 def visualize_amount_per_item_over_time(item_to_date_to_amount):
@@ -465,8 +496,6 @@ def visualize_amount_per_item_over_time(item_to_date_to_amount):
 	    )
 	).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
-	# with streamlit.beta_expander("View dataset"):
-	# 	streamlit.dataframe(source)
 
 
 def visualize_calories_per_item_over_time(item_to_date_to_calories):
@@ -489,13 +518,11 @@ def visualize_calories_per_item_over_time(item_to_date_to_calories):
 	    )
 	).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
-	# with streamlit.beta_expander("View dataset"):
-	# 	streamlit.dataframe(source)
+
 
 def visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_food_group):
 	dataframes = []
 	for item in item_to_date_to_amount.keys():
-
 		# Try to get the item's food group.
 		# If there isn't an entry to this item in the food group lookup, that probably means this item isn't edible.
 		try:
@@ -520,8 +547,6 @@ def visualize_amount_per_food_group_over_time(item_to_date_to_amount, item_to_fo
 	    )
 	).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
-	# with streamlit.beta_expander("View dataset"):
-	# 	streamlit.dataframe(source)
 
 
 def visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_to_food_group):
@@ -544,8 +569,7 @@ def visualize_calories_per_food_group_over_time(item_to_date_to_calories, item_t
 	    )
 	).interactive()
 	streamlit.altair_chart(chart, use_container_width=True)
-	# with streamlit.beta_expander("View dataset"):
-	# 	streamlit.dataframe(source)
+
 
 def render_title():
 	streamlit.sidebar.title("Łódź Rations Visualizer")
@@ -564,7 +588,6 @@ def render_unit_dropdown():
 def render_rationing_strategy_dropdown():
 	return streamlit.sidebar.radio("What's your rationing strategy?", options=["None", "Clairvoyant (always with a morsel put aside)",
 	 "Even (distribute daily allotment with faith in announcement information)"], index=0)
-	 # "Maximize (full whenever possible)"], index=1)
 
 
 def render_lookahead_dropdown():
@@ -582,6 +605,8 @@ def render_date_slider(rations_per_day):
 	)
 	return date_range
 
-
+########################################################################################################
+# This tells Python to run the app when we call 'streamlit run rations_visualizer.py' from the terminal.
+########################################################################################################
 if __name__ == "__main__":
     main()
