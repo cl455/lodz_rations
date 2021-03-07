@@ -8,6 +8,20 @@ from collections import OrderedDict
 from datetime import datetime, timedelta, date
 
 
+INEDIBLE_RATIONS = [
+	"gespaltenem Holz/Split Wood",
+	"Koksgrus (kg)",
+	"Kohlen/Coal (kg)",
+	"Kohlenstaub/Coal dust (kg)",
+	"Streichhölzer/Matches (schachtel)",
+	"Fliegenfänger (stück)",
+	"Waschpulver (päcken)",
+	"Waschsoda (g)",
+	"Waschmittel \"Sil\" (300 g/pack)",
+	"Seife/Soap (stück)",
+]
+
+
 ########################
 # Runs the Streamlit app
 ########################
@@ -164,7 +178,7 @@ def main():
 #############################
 # Airtable-related functions:
 #############################
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def get_rations_data_from_airtable():
 	AIRTABLE_API_KEY = "keygCUTG6e5DvySOR"
 	AIRTABLE_BASE_ID = "appXanlsMeENo7O1N"
@@ -174,7 +188,7 @@ def get_rations_data_from_airtable():
 	return rations_data_from_airtable
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def get_caloric_values_from_airtable():
 	AIRTABLE_API_KEY = "keygCUTG6e5DvySOR"
 	AIRTABLE_BASE_ID = "appXanlsMeENo7O1N"
@@ -183,7 +197,7 @@ def get_caloric_values_from_airtable():
 	caloric_values_from_airtable = airtable.get_all()
 	return caloric_values_from_airtable
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def format_rations_data_from_airtable(rations_data_from_airtable):
 	announcements = {}
 	item_to_date_to_amount = {}
@@ -209,6 +223,9 @@ def format_rations_data_from_airtable(rations_data_from_airtable):
 
 		items = {}
 		for key in data:
+			# Filter out rations like coal, firewood, etc that can't be eaten.
+			if key in INEDIBLE_RATIONS:
+				continue
 			if "(g)" in key or "(kg)" in key:
 				all_announcement_dates = []
 				first_announcement_date = date(1940, 3, 13)
@@ -236,7 +253,7 @@ def format_rations_data_from_airtable(rations_data_from_airtable):
 	return announcements, item_to_date_to_amount
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def format_caloric_values_from_airtable(caloric_values_from_airtable):
 	item_to_calories = {}
 	item_to_food_group = {}
@@ -259,11 +276,11 @@ def format_caloric_values_from_airtable(caloric_values_from_airtable):
 # Functions that do math to create dictionary datasets in helpful format
 # (calculations, data transformations, augmentations):
 ########################################################################
-@streamlit.cache(persist=True, show_spinner=False)
-def calculate_announced_amount_per_item_per_day(announcements, item_to_date_to_amount):
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
+def calculate_announced_amount_per_item_per_day(announcements, item_to_date_to_announced_amount):
+	item_to_date_to_amount = dict(item_to_date_to_announced_amount)
 	for announcement_date, announcement_info in announcements.items():
 		for item, ration_amount in announcement_info["items"].items():
-			# ration_effective_start_date = datetime.strptime(announcement_info["start_date"], "%Y-%m-%d")
 			item_to_date_to_amount[item][announcement_info["start_date"]] = ration_amount
 
 	# Order each item"s mapping of dates to amount available on that date by dates in ascending order.
@@ -273,23 +290,24 @@ def calculate_announced_amount_per_item_per_day(announcements, item_to_date_to_a
 	return item_to_date_to_amount
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_available_rations_per_item_per_day(announcements, item_to_date_to_amount):
+	result = dict(item_to_date_to_amount)
 	for announcement_date, announcement_info in announcements.items():
 		for item, ration_amount in announcement_info["items"].items():
 			ration_effective_start_date = datetime.strptime(announcement_info["start_date"], "%Y-%m-%d")
 			ration_effective_duration = announcement_info["duration_in_days"]
 			for days_since_start in range(ration_effective_duration):
 				current_date = ration_effective_start_date + timedelta(days_since_start)
-				item_to_date_to_amount[item][current_date.strftime("%Y-%m-%d")] = ration_amount / ration_effective_duration
+				result[item][current_date.strftime("%Y-%m-%d")] = ration_amount / ration_effective_duration
 
 	# Order each item"s mapping of dates to amount available on that date by dates in ascending order.
-	for item in item_to_date_to_amount.keys():
-		item_to_date_to_amount[item] = OrderedDict(sorted(item_to_date_to_amount[item].items()))
+	for item in result.keys():
+		result[item] = OrderedDict(sorted(result[item].items()))
 
-	return item_to_date_to_amount
+	return result
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_to_calories):
 	item_to_date_to_calories = {}
 	for item in item_to_date_to_amount.keys():
@@ -300,7 +318,7 @@ def calculate_available_calories_per_item_per_day(item_to_date_to_amount, item_t
 	return item_to_date_to_calories
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_total_amount_per_announcement(item_to_date_to_amount):
 	rations_per_day = {}
 	for item in item_to_date_to_amount.keys():
@@ -312,7 +330,7 @@ def calculate_total_amount_per_announcement(item_to_date_to_amount):
 	return rations_per_day
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_total_calories_per_announcement(item_to_date_to_calories):
 	calories_per_day = {}
 	for item in item_to_date_to_calories.keys():
@@ -324,7 +342,7 @@ def calculate_total_calories_per_announcement(item_to_date_to_calories):
 	return calories_per_day
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	rations_per_day = {}
 	for item in item_to_date_to_amount.keys():
@@ -336,7 +354,7 @@ def calculate_total_amount_available_over_time(item_to_date_to_amount):
 	return rations_per_day
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_total_calories_available_over_time(item_to_date_to_calories):
 	calories_per_day = {}
 	for item in item_to_date_to_calories.keys():
@@ -348,7 +366,7 @@ def calculate_total_calories_available_over_time(item_to_date_to_calories):
 	return calories_per_day
 
 
-@streamlit.cache(persist=True, show_spinner=False)
+@streamlit.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def calculate_total_available_over_time_with_clairvoyance(total_by_date, lookahead_window=7):
 	total_by_date = _zero_fill_dates_without_food(total_by_date)
 	dates_without_food = _get_dates_without_food(total_by_date)
@@ -612,7 +630,6 @@ def render_date_slider(rations_per_day):
 		value=(first_announcement_date, last_announcement_date)
 	)
 	return date_range
-
 
 
 
