@@ -21,6 +21,14 @@ INEDIBLE_RATIONS = [
 	"Seife/Soap (stück)",
 ]
 
+FUEL = [
+	"gespaltenem Holz/Split Wood",
+	"Koksgrus (kg)",
+	"Kohlen/Coal (kg)",
+	"Kohlenstaub/Coal dust (kg)",
+	"Saccharin (tabl)",
+	"Soda (g)"
+]
 
 ########################
 # Runs the Streamlit app
@@ -35,7 +43,7 @@ def main():
 	    unsafe_allow_html=True,
 	)
 	query_params = st.experimental_get_query_params()
-	tabs = ["Home", "About", "Contact"]
+	tabs = ["Home", "Non-Foodstuffs", "Contact"]
 	if "tab" in query_params:
 	    active_tab = query_params["tab"][0]
 	else:
@@ -63,29 +71,19 @@ def main():
 	st.markdown("<br>", unsafe_allow_html=True)
 
 	if active_tab == "Home":
-	    st.write("Welcome to my lovely page!")
-	    st.write("Feel free to play with this ephemeral slider!")
-	    st.slider(
-	        "Does this get preserved? You bet it doesn't!",
-	        min_value=0,
-	        max_value=100,
-	        value=50,
-	    )
-	elif active_tab == "About":
-	    st.write("This page was created as a hacky demo of tabs")
-	elif active_tab == "Contact":
 		# 1) Render the sidebar
 		render_title()
 		unit = render_unit_dropdown()
 		strategy = render_rationing_strategy_dropdown()
 		source = st.sidebar.beta_expander("Source:", False)
-		source.write(
-			"The visualizations draw from a dataset compiled from rations announcements found in RG-67.019M, Nachman Zonabend collection, United States Holocaust Memorial Museum Archives, Washington, DC."
-			)
 
 		lookahead_window = 7
 		if "Clairvoyant" in strategy:
 			lookahead_window = render_lookahead_dropdown()
+
+		source.write(
+			"The visualizations draw from a dataset compiled from rations announcements found in RG-67.019M, Nachman Zonabend collection, United States Holocaust Memorial Museum Archives, Washington, DC."
+			)
 
 		# 2) Connect with Airtable.
 		rations_data_from_airtable = get_rations_data_from_airtable()
@@ -111,6 +109,7 @@ def main():
 		# 	},
 		# }
 		announcements, item_to_date_to_amount = format_rations_data_from_airtable(rations_data_from_airtable)
+		#announcements, item_to_date_to_amount = format_fuel_data_from_airtable(rations_data_from_airtable)
 
 		# 4) Format the caloric data from Airtable into a more workable form. Desired dictionary format:
 		#
@@ -163,7 +162,7 @@ def main():
 		if unit == "Mass (g)":
 			# Visualize main graph + 2 colorful graphs (in grams).
 			if strategy == "None":
-				st.subheader(f"This is the total amount of food rations that was available to a resident of the Łódź ghetto over time...")
+				st.subheader("This is the total amount of food rations that was available to a resident of the Łódź ghetto over time...")
 				st.text("")
 				visualize_total_amount_available_over_time(announced_amount)
 				st.text("")
@@ -220,6 +219,11 @@ def main():
 					days_without_food = calculate_number_of_days_without_food(clairvoyant_amount)
 				st.text("")
 				st.subheader(f"This would have led to an estimated {days_without_food} days without food in the {rations_duration} days between {first_announcement_date} and {last_announcement_date}.")
+	elif active_tab == "Non-Foodstuffs":
+	    st.write("Saccharine and firewood and coal?")
+
+	elif active_tab == "Contact":
+		st.write("Can we throw a map on here too, please?")
 	else:
 	    st.error("Something has gone terribly wrong.")
 
@@ -524,6 +528,7 @@ def visualize_announcements_by_item_in_grams(announcements):
 	    )
 	).interactive()
 	st.altair_chart(chart, use_container_width=True)
+
 
 def visualize_total_amount_available_over_time(rations_per_day):
 	dataframe = pandas.DataFrame({
