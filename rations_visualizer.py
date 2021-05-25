@@ -3,8 +3,8 @@ import numpy as np
 import pandas
 import streamlit as st
 import string
-import bokeh
-from bokeh.plotting import figure
+# import bokeh
+# from bokeh.plotting import figure
 from airtable import Airtable
 from collections import OrderedDict
 from datetime import datetime, timedelta, date
@@ -270,16 +270,16 @@ def main():
 		expander.write("Remember to credit your sources.")
 	elif active_tab == "Contact":
 		st.write("Can we throw a map on here too, please?")
-		x = [1, 2, 3, 4, 5]
-		y = [6, 7, 2, 4, 5]
-
-		p = figure(
-			title='simple line example',
-			x_axis_label='x',
-			y_axis_label='y')
-
-		p.line(x, y, legend_label='Trend', line_width=2)
-		st.bokeh_chart(p, use_container_width=True)
+		# x = [1, 2, 3, 4, 5]
+		# y = [6, 7, 2, 4, 5]
+		#
+		# p = figure(
+		# 	title='simple line example',
+		# 	x_axis_label='x',
+		# 	y_axis_label='y')
+		#
+		# p.line(x, y, legend_label='Trend', line_width=2)
+		# st.bokeh_chart(p, use_container_width=True)
 	else:
 	    st.error("Something has gone terribly wrong.")
 
