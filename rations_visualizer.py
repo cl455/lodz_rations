@@ -1,8 +1,10 @@
 import altair
-import numpy
+import numpy as np
 import pandas
 import streamlit as st
 import string
+import bokeh
+from bokeh.plotting import figure
 from airtable import Airtable
 from collections import OrderedDict
 from datetime import datetime, timedelta, date
@@ -220,10 +222,64 @@ def main():
 				st.text("")
 				st.subheader(f"This would have led to an estimated {days_without_food} days without food in the {rations_duration} days between {first_announcement_date} and {last_announcement_date}.")
 	elif active_tab == "Non-Foodstuffs":
-	    st.write("Saccharine and firewood and coal?")
+		options = st.multiselect(
+			'What would you like to see graphed?',
+				['Coal', 'Firewood', 'Saccharine'],
+				['Coal', 'Firewood', 'Saccharine'])
+		# st.write('You selected:', options)
+		@st.cache
+		def load_data(nrows):
+			data = pandas.read_csv('heating_materials.csv', index_col=0, parse_dates=True)
+			return data
+		fuel_data = load_data(270)
 
+		df = pandas.DataFrame(fuel_data[:270], columns = ['Soda (g)','Saccharin (tabl)','Kohlenstaub/Coal dust (kg)', 'Kohlen/Coal (kg)', 'Koksgrus (kg)'])
+
+		series = pandas.read_csv('./heating_materials.csv', header=0)
+		series = series.melt('Date', var_name='Material', value_name='Amount')
+# Basic Altair line chart where it picks automatically the colors for the lines
+		basic_chart = altair.Chart(series).mark_line().encode(
+    		x='Date:T',
+    		y='Amount:Q',
+    		color='Material:N',
+			# legend=altair.Legend(title='Rations')
+		).properties(
+			width=500,
+			height=300
+		)
+
+		scatter_chart = altair.Chart(series).mark_point().encode(
+			x='Date:T',
+			y='Amount:Q',
+			row='Material:N'
+		)
+
+		st.altair_chart(basic_chart)
+		st.altair_chart(scatter_chart)
+		#st.line_chart(df)
+		# st.line_chart(fuel_data['Soda (g)'])
+		st.subheader('Non-Foodstuffs')
+		# st.write(fuel_data)
+		col1, col2 = st.beta_columns(2)
+		col1.bar_chart(fuel_data['Soda (g)'])
+		col1.bar_chart(fuel_data['Saccharin (tabl)'])
+		col2.bar_chart(fuel_data['Kohlen/Coal (kg)'])
+		col2.bar_chart(fuel_data['Kohlenstaub/Coal dust (kg)'])
+
+		expander = st.beta_expander("Sources:")
+		expander.write("Remember to credit your sources.")
 	elif active_tab == "Contact":
 		st.write("Can we throw a map on here too, please?")
+		x = [1, 2, 3, 4, 5]
+		y = [6, 7, 2, 4, 5]
+
+		p = figure(
+			title='simple line example',
+			x_axis_label='x',
+			y_axis_label='y')
+
+		p.line(x, y, legend_label='Trend', line_width=2)
+		st.bokeh_chart(p, use_container_width=True)
 	else:
 	    st.error("Something has gone terribly wrong.")
 
@@ -250,7 +306,7 @@ def get_caloric_values_from_airtable():
 	caloric_values_from_airtable = airtable.get_all()
 	return caloric_values_from_airtable
 
-#@st.cache(suppress_st_warning=True, persist=True, show_spinner=False)
+@st.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def format_rations_data_from_airtable(rations_data_from_airtable):
 	announcements = {}
 	item_to_date_to_amount = {}
@@ -305,6 +361,58 @@ def format_rations_data_from_airtable(rations_data_from_airtable):
 
 	return announcements, item_to_date_to_amount
 
+def format_fuel_data_from_airtable(rations_data_from_airtable):
+	announcements = {}
+	fuel_to_date_to_amount = {}
+	for thing in rations_data_from_airtable:
+		data = thing["fields"]
+
+		if "Begin Date" in data:
+			start_date = data["Begin Date"]
+		else:
+			# Assume effective immediately
+			start_date = data["Date"]
+
+		if "Est. Duration" in data:
+			# "Est. Duration" appears in the Airtable usually as "X days"/"X days (per coupon)"/"X week"
+			# Because it was always formatted this way, we can always rely on the number (of days)
+			# being the numerical value before the first whitespace
+			duration_in_days = int(data["Est. Duration"].split(" ")[0])
+			if "week" in data["Est. Duration"]:
+				duration_in_days *= 7
+		else:
+			# Assume 10 day duration otherwise
+			duration_in_days = 10
+
+		items = {}
+		for key in data:
+			if key not in FUEL:
+				continue
+			if "(g)" in key or "(kg)" in key:
+				all_announcement_dates = []
+				first_announcement_date = date(1940, 3, 13)
+				last_announcement_date = date(1944, 7, 18)
+				rations_duration = last_announcement_date - first_announcement_date
+
+				for days_since_first_announcement in range(rations_duration.days):
+					# .days cales the number of days integer value from rations_duration ... timedelta object
+					day = first_announcement_date + timedelta(days_since_first_announcement)
+					all_announcement_dates.append(day.strftime("%Y-%m-%d"))
+				fuel_to_date_to_amount[key] = {date:0 for date in all_announcement_dates}
+
+				if "(g)" in key:
+					items[key] = data[key]
+				if "(kg)" in key:
+					items[key] = data[key] * 1000
+
+		announcements[data["Date"]] = {
+			"start_date": start_date,
+			"duration_in_days": duration_in_days,
+			"items": items,
+		}
+	announcements = OrderedDict(sorted(announcements.items()))
+
+	return announcements, fuel_to_date_to_amount
 
 @st.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def format_caloric_values_from_airtable(caloric_values_from_airtable):
@@ -542,6 +650,17 @@ def visualize_total_amount_available_over_time(rations_per_day):
     ).interactive()
 	st.altair_chart(chart, use_container_width=True)
 
+# def visualize_fuel_available_over_time(rations_per_day):
+# 	dataframe = pandas.DataFrame({
+# 		"Date": [datetime.strptime(date, "%Y-%m-%d") for date in rations_per_day.keys()],
+# 		"Grams": rations_per_day.values()
+# 	})
+# 	chart = altair.Chart(dataframe).mark_line().encode(
+# 	    x=altair.X("Date:T", scale=altair.Scale(zero=False), axis=altair.Axis(labelAngle=-45)),
+# 	    y=altair.Y("Grams:Q"),
+# 	    tooltip=["Date", "Grams"]
+#     ).interactive()
+# 	st.altair_chart(chart, use_container_width=True)
 
 def visualize_total_calories_available_over_time(calories_per_day):
 	dataframe = pandas.DataFrame({
@@ -683,8 +802,6 @@ def render_date_slider(rations_per_day):
 		value=(first_announcement_date, last_announcement_date)
 	)
 	return date_range
-
-
 
 
 ########################################################################################################
