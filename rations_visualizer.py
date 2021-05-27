@@ -260,27 +260,35 @@ def main():
 		options = st.multiselect(
 			'What would you like to see graphed?',
 				['Baking Soda', 'Coal', 'Saccharine'])
-		# st.write('You selected:', options)
-		col1, col2 = st.beta_columns(2)
+		st.write('You selected:', options)
+		print (options)
+		# col1, col2 = st.beta_columns(2)
 
 		if 'Baking Soda' in options:
-			col1.bar_chart(fuel_data['Soda (g)'])
-			col2.write('The potatoes were frozen, mushy, and, I don’t know what you call it – you know, it had turned into alcohol – it had fermented, that’s the word. The turnips were vile, that’s all I can say. I mean, if they weren’t frozen they were vile. If they were frozen they were not edible. We cooked whenever we had heat with soda so it would act as tenderizer and cook fast because we had no coal or no wood. A great deal of the stuff we ate raw ')
-			col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
-		elif 'Saccharine' in options:
-			col1.bar_chart(fuel_data['Saccharin (tabl)'])
-			col2.write('There were different kinds of children. There were the street urchins which in the beginning stood in their rags on street corners and would sing a song about Rumkowsky and sell [saccharine], ten for a mrk or twelve for a mark. It was like the gold market up and down, like the stock market. You could buy that. Those kids ran wild.')
-			col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
-		elif 'Coal' in options:
-			col1.bar_chart(fuel_data['Kohlen/Coal (kg)'])
-			col1.bar_chart(fuel_data['Kohlenstaub/Coal dust (kg)'])
-			col2.write('...We shared the little room with four other people. There were wooden bunks; a little iron stove with a long pipe but never enough coal to heat it. We cooked on it. ')
-			col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
-			col2.write("")
-			col2.write('The ghetto is alarmed about the fact that, with the cold season approaching, no fuel has been stockpiled or even announced. Since the last allocation, on July 20 for the month of August - 8 kilograms of briquettes - no new ration has been made.')
-			col2.markdown('— 16 September 1943, _Lodz Ghetto Chronicle_')
-		else:
-			st.write('You did not select anything')
+			with st.beta_container():
+				col1, col2 = st.beta_columns(2)
+				col1.bar_chart(fuel_data['Soda (g)'])
+				col2.write('The potatoes were frozen, mushy, and, I don’t know what you call it – you know, it had turned into alcohol – it had fermented, that’s the word. The turnips were vile, that’s all I can say. I mean, if they weren’t frozen they were vile. If they were frozen they were not edible. We cooked whenever we had heat with soda so it would act as tenderizer and cook fast because we had no coal or no wood. A great deal of the stuff we ate raw ')
+				col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
+
+		if 'Saccharine' in options:
+			with st.beta_container():
+				col1, col2 = st.beta_columns(2)
+				col1.bar_chart(fuel_data['Saccharin (tabl)'])
+				col2.write('There were different kinds of children. There were the street urchins which in the beginning stood in their rags on street corners and would sing a song about Rumkowsky and sell [saccharine], ten for a mrk or twelve for a mark. It was like the gold market up and down, like the stock market. You could buy that. Those kids ran wild.')
+				col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
+
+		if 'Coal' in options:
+			with st.beta_container():
+				col1, col2 = st.beta_columns(2)
+				col1.bar_chart(fuel_data['Kohlen/Coal (kg)'])
+				col1.bar_chart(fuel_data['Kohlenstaub/Coal dust (kg)'])
+				col2.write('...We shared the little room with four other people. There were wooden bunks; a little iron stove with a long pipe but never enough coal to heat it. We cooked on it. ')
+				col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
+				col2.write("")
+				col2.write('The ghetto is alarmed about the fact that, with the cold season approaching, no fuel has been stockpiled or even announced. Since the last allocation, on July 20 for the month of August - 8 kilograms of briquettes - no new ration has been made.')
+				col2.markdown('— 16 September 1943, _Lodz Ghetto Chronicle_')
+
 
 		st.markdown('***')
 
