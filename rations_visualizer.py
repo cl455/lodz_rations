@@ -45,15 +45,15 @@ def main():
 	    unsafe_allow_html=True,
 	)
 	query_params = st.experimental_get_query_params()
-	tabs = ["Home", "Non-Foodstuffs", "Contact"]
+	tabs = ["Home", "Non-Foodstuffs", "Kitchens"]
 	if "tab" in query_params:
 	    active_tab = query_params["tab"][0]
 	else:
 	    active_tab = "Home"
 
-	if active_tab not in tabs:
-	    st.experimental_set_query_params(tab="Home")
-	    active_tab = "Home"
+	# if active_tab not in tabs:
+	#     st.experimental_set_query_params(tab="Home")
+	#     active_tab = "Home"
 
 	li_items = "".join(
 	    f"""
@@ -222,11 +222,6 @@ def main():
 				st.text("")
 				st.subheader(f"This would have led to an estimated {days_without_food} days without food in the {rations_duration} days between {first_announcement_date} and {last_announcement_date}.")
 	elif active_tab == "Non-Foodstuffs":
-		options = st.multiselect(
-			'What would you like to see graphed?',
-				['Coal', 'Firewood', 'Saccharine'],
-				['Coal', 'Firewood', 'Saccharine'])
-		# st.write('You selected:', options)
 		@st.cache
 		def load_data(nrows):
 			data = pandas.read_csv('heating_materials.csv', index_col=0, parse_dates=True)
@@ -238,7 +233,7 @@ def main():
 		series = pandas.read_csv('./heating_materials.csv', header=0)
 		series = series.melt('Date', var_name='Material', value_name='Amount')
 # Basic Altair line chart where it picks automatically the colors for the lines
-		basic_chart = altair.Chart(series).mark_line().encode(
+		line_chart = altair.Chart(series).mark_line().encode(
     		x='Date:T',
     		y='Amount:Q',
     		color='Material:N',
@@ -248,27 +243,56 @@ def main():
 			height=300
 		)
 
-		scatter_chart = altair.Chart(series).mark_point().encode(
+		scatter_chart = altair.Chart(series).mark_circle().encode(
 			x='Date:T',
 			y='Amount:Q',
-			row='Material:N'
-		)
+			color=altair.Color('Material:N',scale=altair.Scale(scheme='set1'))
+			)
 
-		st.altair_chart(basic_chart)
-		st.altair_chart(scatter_chart)
-		#st.line_chart(df)
-		# st.line_chart(fuel_data['Soda (g)'])
-		st.subheader('Non-Foodstuffs')
-		# st.write(fuel_data)
+		area_chart = altair.Chart(series).mark_area().encode(
+		    altair.X("Date:T",
+		        axis=altair.Axis(labelAngle=-45),
+		    ),
+		    altair.Y("Amount:Q", stack="center", axis=None),
+			altair.Color("Material:N",scale=altair.Scale(scheme="plasma"))
+		).interactive()
+
+		options = st.multiselect(
+			'What would you like to see graphed?',
+				['Baking Soda', 'Coal', 'Saccharine'])
+		# st.write('You selected:', options)
 		col1, col2 = st.beta_columns(2)
-		col1.bar_chart(fuel_data['Soda (g)'])
-		col1.bar_chart(fuel_data['Saccharin (tabl)'])
-		col2.bar_chart(fuel_data['Kohlen/Coal (kg)'])
-		col2.bar_chart(fuel_data['Kohlenstaub/Coal dust (kg)'])
+
+		if 'Baking Soda' in options:
+			col1.bar_chart(fuel_data['Soda (g)'])
+			col2.write('The potatoes were frozen, mushy, and, I don’t know what you call it – you know, it had turned into alcohol – it had fermented, that’s the word. The turnips were vile, that’s all I can say. I mean, if they weren’t frozen they were vile. If they were frozen they were not edible. We cooked whenever we had heat with soda so it would act as tenderizer and cook fast because we had no coal or no wood. A great deal of the stuff we ate raw ')
+			col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
+		elif 'Saccharine' in options:
+			col1.bar_chart(fuel_data['Saccharin (tabl)'])
+			col2.write('There were different kinds of children. There were the street urchins which in the beginning stood in their rags on street corners and would sing a song about Rumkowsky and sell [saccharine], ten for a mrk or twelve for a mark. It was like the gold market up and down, like the stock market. You could buy that. Those kids ran wild.')
+			col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
+		elif 'Coal' in options:
+			col1.bar_chart(fuel_data['Kohlen/Coal (kg)'])
+			col1.bar_chart(fuel_data['Kohlenstaub/Coal dust (kg)'])
+			col2.write('...We shared the little room with four other people. There were wooden bunks; a little iron stove with a long pipe but never enough coal to heat it. We cooked on it. ')
+			col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
+			col2.write("")
+			col2.write('The ghetto is alarmed about the fact that, with the cold season approaching, no fuel has been stockpiled or even announced. Since the last allocation, on July 20 for the month of August - 8 kilograms of briquettes - no new ration has been made.')
+			col2.markdown('— 16 September 1943, _Lodz Ghetto Chronicle_')
+		else:
+			st.write('You did not select anything')
+
+		st.markdown('***')
+
+		# st.altair_chart(area_chart, use_container_width=True)
+		# st.altair_chart(line_chart, use_container_width=True)
+		st.altair_chart(scatter_chart, use_container_width=True)
+		#st.subheader('Non-Foodstuffs')
+		#st.write(fuel_data)
 
 		expander = st.beta_expander("Sources:")
 		expander.write("Remember to credit your sources.")
-	elif active_tab == "Contact":
+	elif active_tab == "Kitchens":
 		st.write("Can we throw a map on here too, please?")
 		# x = [1, 2, 3, 4, 5]
 		# y = [6, 7, 2, 4, 5]
@@ -306,7 +330,7 @@ def get_caloric_values_from_airtable():
 	caloric_values_from_airtable = airtable.get_all()
 	return caloric_values_from_airtable
 
-@st.cache(suppress_st_warning=True, persist=True, show_spinner=False)
+# @st.cache(suppress_st_warning=True, persist=True, show_spinner=False)
 def format_rations_data_from_airtable(rations_data_from_airtable):
 	announcements = {}
 	item_to_date_to_amount = {}
