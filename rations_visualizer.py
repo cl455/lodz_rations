@@ -80,7 +80,7 @@ def main():
 		source = st.sidebar.beta_expander("Source:", False)
 
 		lookahead_window = 7
-		if "Clairvoyant" in strategy:
+		if "Resource" in strategy:
 			lookahead_window = render_lookahead_dropdown()
 
 		source.write(
@@ -186,7 +186,7 @@ def main():
 				if "Even" in strategy:
 					visualize_total_amount_available_over_time(even_amount)
 					days_without_food = calculate_number_of_days_without_food(even_amount)
-				if "Clairvoyant" in strategy:
+				if "Resource" in strategy:
 					visualize_total_amount_available_over_time(clairvoyant_amount)
 					days_without_food = calculate_number_of_days_without_food(clairvoyant_amount)
 				st.text("")
@@ -216,7 +216,7 @@ def main():
 				if "Even" in strategy:
 					visualize_total_calories_available_over_time(even_calories)
 					days_without_food = calculate_number_of_days_without_food(even_calories)
-				if "Clairvoyant" in strategy:
+				if "Resource" in strategy:
 					visualize_total_calories_available_over_time(clairvoyant_amount)
 					days_without_food = calculate_number_of_days_without_food(clairvoyant_amount)
 				st.text("")
@@ -261,7 +261,7 @@ def main():
 			'What would you like to see graphed?',
 				['Baking Soda', 'Coal', 'Saccharine'])
 		st.write('You selected:', options)
-		print (options)
+		#print (options)
 		# col1, col2 = st.beta_columns(2)
 
 		if 'Baking Soda' in options:
@@ -270,6 +270,7 @@ def main():
 				col1.bar_chart(fuel_data['Soda (g)'])
 				col2.write('The potatoes were frozen, mushy, and, I don’t know what you call it – you know, it had turned into alcohol – it had fermented, that’s the word. The turnips were vile, that’s all I can say. I mean, if they weren’t frozen they were vile. If they were frozen they were not edible. We cooked whenever we had heat with soda so it would act as tenderizer and cook fast because we had no coal or no wood. A great deal of the stuff we ate raw ')
 				col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
+				st.markdown('***')
 
 		if 'Saccharine' in options:
 			with st.beta_container():
@@ -277,6 +278,7 @@ def main():
 				col1.bar_chart(fuel_data['Saccharin (tabl)'])
 				col2.write('There were different kinds of children. There were the street urchins which in the beginning stood in their rags on street corners and would sing a song about Rumkowsky and sell [saccharine], ten for a mrk or twelve for a mark. It was like the gold market up and down, like the stock market. You could buy that. Those kids ran wild.')
 				col2.markdown('— _Lucille Eichengreen_, RG-50.477.0809')
+				st.markdown('***')
 
 		if 'Coal' in options:
 			with st.beta_container():
@@ -288,6 +290,7 @@ def main():
 				col2.write("")
 				col2.write('The ghetto is alarmed about the fact that, with the cold season approaching, no fuel has been stockpiled or even announced. Since the last allocation, on July 20 for the month of August - 8 kilograms of briquettes - no new ration has been made.')
 				col2.markdown('— 16 September 1943, _Lodz Ghetto Chronicle_')
+				st.markdown('***')
 
 
 		st.markdown('***')
@@ -297,11 +300,14 @@ def main():
 		st.altair_chart(scatter_chart, use_container_width=True)
 		#st.subheader('Non-Foodstuffs')
 		#st.write(fuel_data)
-
 		expander = st.beta_expander("Sources:")
-		expander.write("Remember to credit your sources.")
+		expander.write("The visualizations draw from a dataset compiled from rations announcements found in RG-67.019M, Nachman Zonabend collection, United States Holocaust Memorial Museum Archives, Washington, DC.")
 	elif active_tab == "Kitchens":
-		st.write("Can we throw a map on here too, please?")
+		from PIL import Image
+		image = Image.open('lodz_ghetto_kitchens.png')
+		st.image(image, caption='Map of kitchens in the Lodz Ghetto')
+		expander = st.beta_expander("Sources:")
+		expander.write("The addresses are from the finding aid of the RG‐15.083M, United States Holocaust Memorial Museum Archives, Washington, DC. ")
 		# x = [1, 2, 3, 4, 5]
 		# y = [6, 7, 2, 4, 5]
 		#
@@ -816,7 +822,7 @@ def render_unit_dropdown():
 
 
 def render_rationing_strategy_dropdown():
-	return st.sidebar.radio("What's your rationing strategy?", options=["None", "Clairvoyant (always with a morsel put aside)",
+	return st.sidebar.radio("What's your rationing strategy?", options=["None", "Ration-stretching (always with a morsel put aside)",
 	 "Even (distribute daily allotment with faith in announcement information)"], index=0)
 
 
